@@ -13,7 +13,7 @@ export async function POST(request) {
   }
 
   const ids = await kv.lrange("polls", 0, 0);
-  if (!ids || ids.length === 0 || ids[0] !== pollId) {
+  if (!ids || ids.length === 0 || String(ids[0]) !== String(pollId)) {
     return NextResponse.json(
       { error: "Esta encuesta ya no está activa" },
       { status: 400 }
