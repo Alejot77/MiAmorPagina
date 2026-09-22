@@ -13,7 +13,7 @@ App para votar qué comer el fin de semana, entre Stefanny y Alejandro. Un voto 
 
 1. Sube esta carpeta a un repositorio de GitHub (puede ser privado).
 2. En [vercel.com](https://vercel.com), "Add New Project" → importa ese repositorio. Vercel detecta que es Next.js automáticamente.
-3. Antes de o después del primer deploy, ve a la pestaña **Storage** del proyecto en Vercel → **Create Database** → elige **KV** (Redis, del marketplace de Vercel/Upstash) → conéctala al proyecto. Esto agrega automáticamente las variables de entorno que la app necesita (`KV_REST_API_URL`, `KV_REST_API_TOKEN`, etc.).
+3. Antes de o después del primer deploy, ve a la pestaña **Storage** del proyecto en Vercel → **Create Database** → elige **Upstash** (Redis, del marketplace) y conéctala al proyecto. Esto agrega automáticamente las variables de entorno que la app necesita (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`).
 4. Haz (re)deploy del proyecto. Listo, ya pueden entrar los dos al link que les da Vercel.
 
 ## Desarrollo local (opcional)
@@ -22,7 +22,7 @@ Si más adelante instalas Node.js en esta máquina:
 
 ```bash
 npm install
-vercel env pull .env.local   # trae las credenciales de KV desde Vercel
+vercel env pull .env.local   # trae las credenciales de Upstash desde Vercel
 npm run dev
 ```
 
