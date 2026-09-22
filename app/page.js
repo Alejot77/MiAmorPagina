@@ -32,6 +32,8 @@ export default function Home() {
   const [creating, setCreating] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [showFlowerModal, setShowFlowerModal] = useState(false);
+  const [editingPollId, setEditingPollId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     try {
@@ -140,24 +142,71 @@ export default function Home() {
     setError("");
     setCreating(true);
     try {
+      const isEditing = Boolean(editingPollId);
       const res = await fetch("/api/poll", {
-        method: "POST",
+        method: isEditing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weekend, options, person }),
+        body: JSON.stringify(
+          isEditing
+            ? { pollId: editingPollId, weekend, options, person }
+            : { weekend, options, person }
+        ),
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json.error || "Error al crear la encuesta");
+        setError(json.error || "Error al guardar la encuesta");
         return;
       }
       setData((d) => ({ poll: json.poll, votes: json.votes, people: d?.people }));
       setOptions(["", ""]);
       setWeekend(nextSaturday());
       setShowCreate(false);
+      setEditingPollId(null);
     } catch (e) {
-      setError("Error al crear la encuesta");
+      setError("Error al guardar la encuesta");
     } finally {
       setCreating(false);
+    }
+  }
+
+  function startEdit(poll) {
+    setError("");
+    setEditingPollId(poll.id);
+    setWeekend(poll.weekend);
+    setOptions(poll.options.map((o) => o.name));
+    setShowCreate(true);
+  }
+
+  function cancelEdit() {
+    setEditingPollId(null);
+    setOptions(["", ""]);
+    setWeekend(nextSaturday());
+    setShowCreate(false);
+  }
+
+  async function deletePoll(pollId) {
+    if (!window.confirm("¿Eliminar esta encuesta y sus votos? No se puede deshacer.")) {
+      return;
+    }
+    setError("");
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/poll", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pollId, person }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error || "Error al eliminar la encuesta");
+        return;
+      }
+      if (editingPollId === pollId) cancelEdit();
+      await fetchPoll();
+    } catch (e) {
+      setError("Error al eliminar la encuesta");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -248,6 +297,9 @@ export default function Home() {
           person={person}
           people={people}
           onVote={vote}
+          onEdit={() => startEdit(data.poll)}
+          onDelete={() => deletePoll(data.poll.id)}
+          deleting={deleting}
         />
       ) : (
         <div className="empty-card">
@@ -265,7 +317,13 @@ export default function Home() {
 
       {showCreate && (
         <section className="create-section">
-          <h2>{data?.poll ? "Encuesta para otro finde" : "Crear encuesta"}</h2>
+          <h2>
+            {editingPollId
+              ? "Editar encuesta"
+              : data?.poll
+              ? "Encuesta para otro finde"
+              : "Crear encuesta"}
+          </h2>
           <form onSubmit={createPoll}>
             <label>
               Fecha del finde
@@ -300,8 +358,17 @@ export default function Home() {
               + Agregar opción
             </button>
             <button type="submit" className="big-btn" disabled={creating}>
-              {creating ? "Creando..." : "Crear encuesta"}
+              {creating
+                ? "Guardando..."
+                : editingPollId
+                ? "Guardar cambios"
+                : "Crear encuesta"}
             </button>
+            {editingPollId && (
+              <button type="button" className="link-btn" onClick={cancelEdit}>
+                Cancelar edición
+              </button>
+            )}
           </form>
         </section>
       )}
@@ -309,7 +376,7 @@ export default function Home() {
   );
 }
 
-function PollView({ poll, votes, person, people, onVote }) {
+function PollView({ poll, votes, person, people, onVote, onEdit, onDelete, deleting }) {
   const myVote = votes[person];
   const counts = {};
   Object.values(votes).forEach((optId) => {
@@ -319,7 +386,23 @@ function PollView({ poll, votes, person, people, onVote }) {
 
   return (
     <section className="poll">
-      <p className="weekend-date">📅 Finde del {formatDate(poll.weekend)}</p>
+      <div className="poll-header">
+        <p className="weekend-date">📅 Finde del {formatDate(poll.weekend)}</p>
+        <div className="poll-actions">
+          <button type="button" className="icon-btn" onClick={onEdit} aria-label="Editar encuesta">
+            ✏️
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={onDelete}
+            disabled={deleting}
+            aria-label="Eliminar encuesta"
+          >
+            🗑️
+          </button>
+        </div>
+      </div>
       <ul className="options-list">
         {poll.options.map((opt) => {
           const selected = myVote === opt.id;

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PEOPLE, PERSON_COLORS } from "@/config";
 
+const STORAGE_KEY = "miamor_person";
+
 function colorFor(name) {
   const idx = PEOPLE.indexOf(name);
   return PERSON_COLORS[idx] || "#b98b6f";
@@ -12,13 +14,51 @@ function colorFor(name) {
 export default function History() {
   const [history, setHistory] = useState(null);
   const [error, setError] = useState("");
+  const [person, setPerson] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setPerson(saved);
+    } catch (e) {
+      // se ignora
+    }
+    loadHistory();
+  }, []);
+
+  function loadHistory() {
     fetch("/api/history")
       .then((r) => r.json())
       .then((d) => setHistory(d.history))
       .catch(() => setError("No se pudo cargar el historial."));
-  }, []);
+  }
+
+  async function deletePoll(pollId) {
+    if (!person) return;
+    if (!window.confirm("¿Eliminar este finde del historial? No se puede deshacer.")) {
+      return;
+    }
+    setError("");
+    setDeletingId(pollId);
+    try {
+      const res = await fetch("/api/poll", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pollId, person }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error || "Error al eliminar");
+        return;
+      }
+      loadHistory();
+    } catch (e) {
+      setError("Error al eliminar");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <main className="wrap">
@@ -34,7 +74,13 @@ export default function History() {
       ) : (
         <ul className="history-list">
           {history.map(({ poll, votes }) => (
-            <HistoryItem key={poll.id} poll={poll} votes={votes} />
+            <HistoryItem
+              key={poll.id}
+              poll={poll}
+              votes={votes}
+              onDelete={person ? () => deletePoll(poll.id) : null}
+              deleting={deletingId === poll.id}
+            />
           ))}
         </ul>
       )}
@@ -42,7 +88,7 @@ export default function History() {
   );
 }
 
-function HistoryItem({ poll, votes }) {
+function HistoryItem({ poll, votes, onDelete, deleting }) {
   const counts = {};
   Object.values(votes).forEach((optId) => {
     counts[optId] = (counts[optId] || 0) + 1;
@@ -54,7 +100,20 @@ function HistoryItem({ poll, votes }) {
 
   return (
     <li className="history-item">
-      <p className="weekend-date">📅 {formatDate(poll.weekend)}</p>
+      <div className="poll-header">
+        <p className="weekend-date">📅 {formatDate(poll.weekend)}</p>
+        {onDelete && (
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={onDelete}
+            disabled={deleting}
+            aria-label="Eliminar este finde"
+          >
+            🗑️
+          </button>
+        )}
+      </div>
       <ul className="history-options">
         {poll.options.map((opt) => {
           const voters = Object.entries(votes).filter(([, v]) => v === opt.id);

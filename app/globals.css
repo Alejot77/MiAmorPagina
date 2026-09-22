@@ -256,12 +256,44 @@ p {
   text-transform: capitalize;
   font-weight: 700;
   color: var(--accent-dark);
-  margin: 0 0 16px;
+  margin: 0;
   font-family: var(--font-heading);
   font-size: 1.1rem;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.poll-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.poll-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  background: var(--card-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .options-list {
@@ -439,10 +471,6 @@ input[type="text"]:focus {
   border-radius: var(--radius-lg);
   padding: 18px 20px;
   box-shadow: var(--shadow-sm);
-}
-
-.history-item .weekend-date {
-  margin-bottom: 12px;
 }
 
 .history-options {
