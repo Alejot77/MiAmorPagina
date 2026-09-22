@@ -12,126 +12,113 @@ const QUOTES = [
   "Si las estrellas fueran flores, todas serían amarillas por ti.",
   "Gracias por llenar mis días de color, incluso los grises.",
   "Un ramo no alcanza para decirte todo lo que siento.",
+  "Contigo hasta las cosas simples se sienten especiales.",
+  "Eres mi lugar favorito en cualquier universo.",
+  "Cada día contigo es un motivo más para sembrar flores amarillas.",
+  "Te quiero en cada estación, no solo en primavera.",
+  "Eres la razón por la que sonrío sin darme cuenta.",
+  "Mi corazón encontró su jardín en ti.",
+  "Contigo, hasta el cielo se llena de flores.",
+  "Eres mi persona favorita en todas las galaxias.",
+  "Quiero seguir llenando tu vida de flores amarillas por mucho tiempo.",
+  "Tu risa es mi flor favorita de todo el universo.",
+  "Gracias por elegirnos, un día a la vez.",
+  "Eres el sol que hace florecer todo a tu paso.",
+  "No importa el día, siempre voy a encontrar una razón para quererte.",
+  "Contigo aprendí que el amor también se cultiva.",
+  "Eres mi calma en medio de cualquier tormenta.",
+  "Que este 21 de septiembre sea el primero de muchos más.",
 ];
 
-// Racimos de flores repartidos por el universo, algunos con una frase al lado.
-const CLUSTERS = [
-  {
-    left: "8%",
-    top: "14%",
-    label: "Te Amo",
-    delay: "0s",
-    duration: "8s",
-    flowers: [
-      { dx: 0, dy: 0, size: 30, rotate: -8 },
-      { dx: 16, dy: 8, size: 22, rotate: 10 },
-      { dx: -10, dy: 14, size: 18, rotate: 4 },
-    ],
-  },
-  {
-    left: "80%",
-    top: "10%",
-    label: "Eres mi sol",
-    delay: "1.1s",
-    duration: "9s",
-    flowers: [
-      { dx: 0, dy: 0, size: 26, rotate: 6 },
-      { dx: -14, dy: 10, size: 18, rotate: -12 },
-    ],
-  },
-  {
-    left: "4%",
-    top: "52%",
-    label: null,
-    delay: "0.5s",
-    duration: "7s",
-    flowers: [
-      { dx: 0, dy: 0, size: 22, rotate: 0 },
-      { dx: 12, dy: 10, size: 16, rotate: 14 },
-    ],
-  },
-  {
-    left: "86%",
-    top: "46%",
-    label: "Eres preciosa",
-    delay: "1.6s",
-    duration: "8.5s",
-    flowers: [
-      { dx: 0, dy: 0, size: 28, rotate: -6 },
-      { dx: 15, dy: 9, size: 20, rotate: 8 },
-      { dx: -8, dy: 16, size: 16, rotate: -4 },
-    ],
-  },
-  {
-    left: "12%",
-    top: "80%",
-    label: "Siempre juntos",
-    delay: "0.8s",
-    duration: "9.5s",
-    flowers: [
-      { dx: 0, dy: 0, size: 24, rotate: 4 },
-      { dx: 14, dy: 8, size: 18, rotate: -8 },
-    ],
-  },
-  {
-    left: "82%",
-    top: "78%",
-    label: "Me encantas",
-    delay: "1.9s",
-    duration: "7.5s",
-    flowers: [
-      { dx: 0, dy: 0, size: 30, rotate: -4 },
-      { dx: -16, dy: 9, size: 20, rotate: 10 },
-      { dx: 10, dy: 15, size: 16, rotate: 4 },
-    ],
-  },
-  {
-    left: "46%",
-    top: "88%",
-    label: "Amor de mi vida",
-    delay: "1.3s",
-    duration: "8.2s",
-    flowers: [
-      { dx: 0, dy: 0, size: 22, rotate: 6 },
-      { dx: 14, dy: 6, size: 16, rotate: -6 },
-    ],
-  },
-  {
-    left: "62%",
-    top: "18%",
-    label: "Eres único",
-    delay: "0.3s",
-    duration: "9.2s",
-    flowers: [
-      { dx: 0, dy: 0, size: 20, rotate: -10 },
-      { dx: 12, dy: 8, size: 14, rotate: 6 },
-    ],
-  },
-  {
-    left: "30%",
-    top: "6%",
-    label: null,
-    delay: "2.1s",
-    duration: "6.8s",
-    flowers: [{ dx: 0, dy: 0, size: 18, rotate: 0 }],
-  },
-  {
-    left: "95%",
-    top: "62%",
-    label: null,
-    delay: "0.9s",
-    duration: "7.8s",
-    flowers: [{ dx: 0, dy: 0, size: 16, rotate: 10 }],
-  },
-  {
-    left: "2%",
-    top: "30%",
-    label: null,
-    delay: "1.5s",
-    duration: "8.8s",
-    flowers: [{ dx: 0, dy: 0, size: 16, rotate: -6 }],
-  },
+// Frases cortas que acompañan algunos racimos de flores.
+const LABELS = [
+  "Te Amo",
+  "Eres mi sol",
+  "Eres preciosa",
+  "Me encantas",
+  "Siempre juntos",
+  "Amor de mi vida",
+  "Eres único",
+  "Mi persona favorita",
+  "Eres mi hogar",
+  "Contigo todo es mejor",
+  "Mi razón de sonreír",
+  "Te elijo cada día",
+  "Eres mi calma",
+  "Mi lugar favorito eres tú",
+  "Gracias por existir",
+  "Eres mi persona",
+  "Contigo hasta el fin",
+  "Mi mejor equipo",
+  "Eres mi paz",
+  "Te quiero así, tal cual eres",
 ];
+
+// Puntos repartidos por toda la pantalla donde crece cada racimo de flores.
+const ANCHORS = [
+  { left: "4%", top: "5%" },
+  { left: "13%", top: "3%" },
+  { left: "24%", top: "7%" },
+  { left: "34%", top: "3%" },
+  { left: "58%", top: "4%" },
+  { left: "68%", top: "8%" },
+  { left: "78%", top: "3%" },
+  { left: "88%", top: "7%" },
+  { left: "96%", top: "13%" },
+  { left: "2%", top: "18%" },
+  { left: "10%", top: "26%" },
+  { left: "3%", top: "36%" },
+  { left: "94%", top: "22%" },
+  { left: "90%", top: "32%" },
+  { left: "97%", top: "42%" },
+  { left: "5%", top: "46%" },
+  { left: "8%", top: "56%" },
+  { left: "2%", top: "66%" },
+  { left: "92%", top: "52%" },
+  { left: "88%", top: "62%" },
+  { left: "96%", top: "72%" },
+  { left: "4%", top: "76%" },
+  { left: "12%", top: "86%" },
+  { left: "6%", top: "93%" },
+  { left: "22%", top: "94%" },
+  { left: "34%", top: "90%" },
+  { left: "46%", top: "94%" },
+  { left: "58%", top: "90%" },
+  { left: "70%", top: "94%" },
+  { left: "82%", top: "90%" },
+  { left: "92%", top: "85%" },
+  { left: "98%", top: "91%" },
+  { left: "20%", top: "15%" },
+  { left: "76%", top: "17%" },
+  { left: "16%", top: "68%" },
+  { left: "80%", top: "70%" },
+  { left: "44%", top: "6%" },
+  { left: "50%", top: "94%" },
+  { left: "1%", top: "50%" },
+  { left: "99%", top: "48%" },
+];
+
+// Genera muchos racimos de flores a partir de los puntos de arriba,
+// variando tamaño, cantidad de flores y frase de forma determinista.
+const CLUSTERS = ANCHORS.map((a, i) => {
+  const flowerCount = (i % 3) + 1;
+  const baseSize = 16 + ((i * 7) % 20);
+  const flowers = Array.from({ length: flowerCount }, (_, j) => ({
+    dx: j === 0 ? 0 : (j % 2 === 0 ? 1 : -1) * (10 + j * 5),
+    dy: j === 0 ? 0 : 6 + j * 5,
+    size: Math.max(12, baseSize - j * 6),
+    rotate: ((i * 29 + j * 41) % 40) - 20,
+  }));
+
+  return {
+    left: a.left,
+    top: a.top,
+    label: i % 2 === 0 ? LABELS[i % LABELS.length] : null,
+    delay: `${(i % 10) * 0.3}s`,
+    duration: `${7 + (i % 5)}s`,
+    flowers,
+  };
+});
 
 function FlowerIcon({ size, rotate = 0 }) {
   return (
@@ -168,7 +155,7 @@ function heartPoint(t, { cx = 100, cy = 72, scale = 4.3 } = {}) {
   return { x, y };
 }
 
-const WREATH_COUNT = 30;
+const WREATH_COUNT = 42;
 const wreathPoints = Array.from({ length: WREATH_COUNT }, (_, i) =>
   heartPoint((i / WREATH_COUNT) * Math.PI * 2)
 );
@@ -181,6 +168,9 @@ const BOUQUET_FLOWERS = [
   { x: 132, y: 160, size: 26, rotate: 28 },
   { x: 90, y: 148, size: 24, rotate: -8 },
   { x: 110, y: 148, size: 24, rotate: 8 },
+  { x: 58, y: 174, size: 20, rotate: -34 },
+  { x: 142, y: 174, size: 20, rotate: 34 },
+  { x: 100, y: 140, size: 20, rotate: 0 },
 ];
 
 function FlowerG({ x, y, size, rotate = 0 }) {
