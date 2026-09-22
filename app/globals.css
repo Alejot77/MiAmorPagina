@@ -591,8 +591,9 @@ input[type="text"]:focus {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background: radial-gradient(1100px 700px at 50% -10%, #2c2560 0%, transparent 60%),
-    linear-gradient(180deg, #100c29, #1a1543 55%, #241b4d);
+  background: radial-gradient(1100px 700px at 50% -5%, #6b4fa8 0%, transparent 60%),
+    radial-gradient(800px 600px at 85% 85%, #8a63c9 0%, transparent 55%),
+    linear-gradient(180deg, #1c1136, #2c1c50 50%, #3a2564);
   color: #fff8e7;
   display: flex;
   align-items: center;
@@ -632,13 +633,27 @@ input[type="text"]:focus {
   backdrop-filter: blur(6px);
 }
 
-.flores-flower {
+.flores-cluster {
   position: absolute;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   animation-name: flores-float;
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
-  filter: drop-shadow(0 0 6px rgba(244, 196, 48, 0.45));
+}
+
+.flores-cluster-flowers {
+  position: relative;
+  width: 1px;
+  height: 1px;
+}
+
+.flores-cluster-flower {
+  position: absolute;
+  display: block;
+  filter: drop-shadow(0 0 6px rgba(244, 196, 48, 0.5));
 }
 
 @keyframes flores-float {
@@ -647,8 +662,18 @@ input[type="text"]:focus {
     transform: translateY(0) rotate(0deg);
   }
   50% {
-    transform: translateY(-18px) rotate(8deg);
+    transform: translateY(-16px) rotate(6deg);
   }
+}
+
+.flores-label {
+  position: relative;
+  margin-top: 34px;
+  white-space: nowrap;
+  color: #fff8e7;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-shadow: 0 0 10px rgba(244, 196, 48, 0.85), 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .flores-content {
@@ -664,22 +689,47 @@ input[type="text"]:focus {
   color: #ffe9a8;
   font-weight: 700;
   font-size: 0.8rem;
-  margin: 0 0 10px;
+  margin: 0 0 4px;
 }
 
-.flores-title {
+.flores-hero {
+  position: relative;
+  width: min(280px, 78vw);
+  margin: 6px auto 0;
+}
+
+.flores-hero-glow {
+  position: absolute;
+  inset: -20% -10% 10%;
+  background: radial-gradient(closest-side, rgba(244, 196, 48, 0.55), transparent 70%);
+  filter: blur(18px);
+  z-index: 0;
+}
+
+.flores-hero-svg {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 0 14px rgba(244, 196, 48, 0.35));
+}
+
+.flores-center-text {
   font-family: var(--font-heading);
-  font-size: 1.8rem;
-  margin: 0 0 22px;
+  font-style: italic;
+  font-size: 1.9rem;
+  margin: 6px 0 18px;
   color: #fff8e7;
+  text-shadow: 0 0 18px rgba(244, 196, 48, 0.7);
 }
 
 .flores-quote {
-  font-size: 1.05rem;
+  font-size: 1.02rem;
   line-height: 1.6;
   font-style: italic;
   color: #ffe9a8;
-  min-height: 90px;
+  min-height: 70px;
   animation: flores-fade 0.6s ease;
 }
 
@@ -691,5 +741,11 @@ input[type="text"]:focus {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (max-width: 420px) {
+  .flores-label {
+    font-size: 0.68rem;
   }
 }
