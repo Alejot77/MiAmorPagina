@@ -2,8 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PEOPLE, PERSON_COLORS } from "@/config";
 
 const STORAGE_KEY = "miamor_person";
+
+function colorFor(name, people) {
+  const idx = (people || PEOPLE).indexOf(name);
+  return PERSON_COLORS[idx] || "#b98b6f";
+}
 
 export default function Home() {
   const [person, setPerson] = useState(null);
@@ -14,6 +20,7 @@ export default function Home() {
   const [weekend, setWeekend] = useState(nextSaturday());
   const [options, setOptions] = useState(["", ""]);
   const [creating, setCreating] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
 
   useEffect(() => {
     try {
@@ -25,6 +32,10 @@ export default function Home() {
     setCheckedStorage(true);
     fetchPoll();
   }, []);
+
+  useEffect(() => {
+    if (data && !data.poll) setShowCreate(true);
+  }, [data]);
 
   async function fetchPoll() {
     setLoading(true);
@@ -106,6 +117,7 @@ export default function Home() {
       setData((d) => ({ poll: json.poll, votes: json.votes, people: d?.people }));
       setOptions(["", ""]);
       setWeekend(nextSaturday());
+      setShowCreate(false);
     } catch (e) {
       setError("Error al crear la encuesta");
     } finally {
@@ -117,18 +129,30 @@ export default function Home() {
     return null;
   }
 
+  const people = data?.people || PEOPLE;
+
   if (!person) {
-    const people = data?.people || ["Stefanny", "Alejandro"];
     return (
       <main className="wrap center">
-        <h1>¿Qué comemos? 🍽️</h1>
-        <p>¿Quién eres?</p>
-        <div className="people-buttons">
-          {people.map((p) => (
-            <button key={p} className="big-btn" onClick={() => choosePerson(p)}>
-              Soy {p}
-            </button>
-          ))}
+        <div className="landing-card">
+          <div className="landing-emoji">🍽️</div>
+          <h1>¿Qué comemos?</h1>
+          <p className="subtitle">¿Quién eres?</p>
+          <div className="people-buttons">
+            {people.map((p) => (
+              <button
+                key={p}
+                className="person-btn"
+                style={{ background: colorFor(p, people) }}
+                onClick={() => choosePerson(p)}
+              >
+                <span className="avatar" style={{ background: "rgba(255,255,255,0.35)" }}>
+                  {p[0]}
+                </span>
+                Soy {p}
+              </button>
+            ))}
+          </div>
         </div>
       </main>
     );
@@ -137,7 +161,12 @@ export default function Home() {
   return (
     <main className="wrap">
       <header className="topbar">
-        <span>Hola, {person} 👋</span>
+        <span className="topbar-greeting">
+          <span className="avatar" style={{ background: colorFor(person, people) }}>
+            {person[0]}
+          </span>
+          Hola, {person}
+        </span>
         <div className="topbar-links">
           <Link href="/history">Historial</Link>
           <button className="link-btn" onClick={changePerson}>
@@ -153,56 +182,74 @@ export default function Home() {
       {loading ? (
         <p>Cargando...</p>
       ) : data?.poll ? (
-        <PollView poll={data.poll} votes={data.votes} person={person} onVote={vote} />
+        <PollView
+          poll={data.poll}
+          votes={data.votes}
+          person={person}
+          people={people}
+          onVote={vote}
+        />
       ) : (
-        <p>Todavía no hay encuesta para este finde. ¡Crea una abajo!</p>
+        <div className="empty-card">
+          Todavía no hay encuesta para este finde.
+          <br />
+          ¡Crea una abajo! 👇
+        </div>
       )}
 
-      <section className="create-section">
-        <h2>{data?.poll ? "Crear encuesta para otro finde" : "Crear encuesta"}</h2>
-        <form onSubmit={createPoll}>
-          <label>
-            Fecha del finde
-            <input
-              type="date"
-              value={weekend}
-              onChange={(e) => setWeekend(e.target.value)}
-              required
-            />
-          </label>
-          {options.map((opt, i) => (
-            <div key={i} className="option-row">
+      {!showCreate && data?.poll && (
+        <button className="create-toggle" onClick={() => setShowCreate(true)}>
+          + Proponer opciones para otro finde
+        </button>
+      )}
+
+      {showCreate && (
+        <section className="create-section">
+          <h2>{data?.poll ? "Encuesta para otro finde" : "Crear encuesta"}</h2>
+          <form onSubmit={createPoll}>
+            <label>
+              Fecha del finde
               <input
-                type="text"
-                placeholder={`Opción ${i + 1}`}
-                value={opt}
-                onChange={(e) => updateOption(i, e.target.value)}
+                type="date"
+                value={weekend}
+                onChange={(e) => setWeekend(e.target.value)}
+                required
               />
-              {options.length > 2 && (
-                <button
-                  type="button"
-                  className="remove-btn"
-                  onClick={() => removeOption(i)}
-                  aria-label="Quitar opción"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          ))}
-          <button type="button" className="link-btn" onClick={addOption}>
-            + Agregar opción
-          </button>
-          <button type="submit" className="big-btn" disabled={creating}>
-            {creating ? "Creando..." : "Crear nueva encuesta"}
-          </button>
-        </form>
-      </section>
+            </label>
+            {options.map((opt, i) => (
+              <div key={i} className="option-row">
+                <input
+                  type="text"
+                  placeholder={`Opción ${i + 1}`}
+                  value={opt}
+                  onChange={(e) => updateOption(i, e.target.value)}
+                />
+                {options.length > 2 && (
+                  <button
+                    type="button"
+                    className="remove-btn"
+                    onClick={() => removeOption(i)}
+                    aria-label="Quitar opción"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+            <button type="button" className="link-btn" onClick={addOption}>
+              + Agregar opción
+            </button>
+            <button type="submit" className="big-btn" disabled={creating}>
+              {creating ? "Creando..." : "Crear encuesta"}
+            </button>
+          </form>
+        </section>
+      )}
     </main>
   );
 }
 
-function PollView({ poll, votes, person, onVote }) {
+function PollView({ poll, votes, person, people, onVote }) {
   const myVote = votes[person];
   const counts = {};
   Object.values(votes).forEach((optId) => {
@@ -212,12 +259,13 @@ function PollView({ poll, votes, person, onVote }) {
 
   return (
     <section className="poll">
-      <p className="weekend-date">Finde del {formatDate(poll.weekend)}</p>
+      <p className="weekend-date">📅 Finde del {formatDate(poll.weekend)}</p>
       <ul className="options-list">
         {poll.options.map((opt) => {
           const selected = myVote === opt.id;
           const voteCount = counts[opt.id] || 0;
           const isWinning = maxVotes > 0 && voteCount === maxVotes;
+          const voters = Object.entries(votes).filter(([, v]) => v === opt.id);
           return (
             <li key={opt.id}>
               <button
@@ -226,9 +274,21 @@ function PollView({ poll, votes, person, onVote }) {
                 }`}
                 onClick={() => onVote(opt.id)}
               >
-                <span>{opt.name}</span>
-                <span className="vote-count">
-                  {voteCount > 0 ? "🍴".repeat(voteCount) : ""}
+                <span className="option-radio" />
+                <span className="option-main">
+                  <span className="option-name">{opt.name}</span>
+                </span>
+                <span className="option-voters">
+                  {voters.map(([p]) => (
+                    <span
+                      key={p}
+                      className="avatar sm"
+                      style={{ background: colorFor(p, people) }}
+                      title={p}
+                    >
+                      {p[0]}
+                    </span>
+                  ))}
                 </span>
               </button>
             </li>

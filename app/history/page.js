@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PEOPLE, PERSON_COLORS } from "@/config";
+
+function colorFor(name) {
+  const idx = PEOPLE.indexOf(name);
+  return PERSON_COLORS[idx] || "#b98b6f";
+}
 
 export default function History() {
   const [history, setHistory] = useState(null);
@@ -24,7 +30,7 @@ export default function History() {
       {!history ? (
         <p>Cargando...</p>
       ) : history.length === 0 ? (
-        <p>Todavía no hay findes registrados.</p>
+        <div className="empty-card">Todavía no hay findes registrados.</div>
       ) : (
         <ul className="history-list">
           {history.map(({ poll, votes }) => (
@@ -48,28 +54,34 @@ function HistoryItem({ poll, votes }) {
 
   return (
     <li className="history-item">
-      <p className="weekend-date">{formatDate(poll.weekend)}</p>
-      <ul>
+      <p className="weekend-date">📅 {formatDate(poll.weekend)}</p>
+      <ul className="history-options">
         {poll.options.map((opt) => {
-          const voters = Object.entries(votes)
-            .filter(([, v]) => v === opt.id)
-            .map(([p]) => p);
+          const voters = Object.entries(votes).filter(([, v]) => v === opt.id);
+          const isWinner = winners.some((w) => w.id === opt.id);
           return (
-            <li
-              key={opt.id}
-              className={winners.some((w) => w.id === opt.id) ? "winner" : ""}
-            >
-              {opt.name} — {counts[opt.id] || 0} voto(s)
-              {voters.length > 0 ? ` (${voters.join(", ")})` : ""}
+            <li key={opt.id} className={isWinner ? "winner" : ""}>
+              <span className="history-option-name">
+                {isWinner ? "🏆 " : ""}
+                {opt.name}
+              </span>
+              <span className="history-option-right">
+                {voters.map(([p]) => (
+                  <span
+                    key={p}
+                    className="avatar sm"
+                    style={{ background: colorFor(p) }}
+                    title={p}
+                  >
+                    {p[0]}
+                  </span>
+                ))}
+                <span className="vote-tally">{counts[opt.id] || 0}</span>
+              </span>
             </li>
           );
         })}
       </ul>
-      {winners.length > 0 && (
-        <p className="winner-label">
-          🏆 Ganó: {winners.map((w) => w.name).join(" y ")}
-        </p>
-      )}
     </li>
   );
 }
