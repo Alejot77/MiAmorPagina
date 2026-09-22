@@ -5,10 +5,20 @@ import Link from "next/link";
 import { PEOPLE, PERSON_COLORS } from "@/config";
 
 const STORAGE_KEY = "miamor_person";
+const FLOWER_SEEN_KEY = "miamor_flowers_seen";
+const FLOWER_PERSON = "Stefanny";
 
 function colorFor(name, people) {
   const idx = (people || PEOPLE).indexOf(name);
   return PERSON_COLORS[idx] || "#b98b6f";
+}
+
+function isFlowerDay(d = new Date()) {
+  return d.getMonth() === 8 && d.getDate() === 21; // 21 de septiembre
+}
+
+function todayKey(d = new Date()) {
+  return d.toISOString().slice(0, 10);
 }
 
 export default function Home() {
@@ -21,17 +31,42 @@ export default function Home() {
   const [options, setOptions] = useState(["", ""]);
   const [creating, setCreating] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [showFlowerModal, setShowFlowerModal] = useState(false);
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setPerson(saved);
+      if (saved) {
+        setPerson(saved);
+        maybeShowFlowerModal(saved);
+      }
     } catch (e) {
       // localStorage no disponible, se ignora
     }
     setCheckedStorage(true);
     fetchPoll();
   }, []);
+
+  function maybeShowFlowerModal(name) {
+    if (name !== FLOWER_PERSON || !isFlowerDay()) return;
+    try {
+      const lastSeen = localStorage.getItem(FLOWER_SEEN_KEY);
+      if (lastSeen !== todayKey()) {
+        setShowFlowerModal(true);
+      }
+    } catch (e) {
+      setShowFlowerModal(true);
+    }
+  }
+
+  function dismissFlowerModal() {
+    try {
+      localStorage.setItem(FLOWER_SEEN_KEY, todayKey());
+    } catch (e) {
+      // se ignora
+    }
+    setShowFlowerModal(false);
+  }
 
   useEffect(() => {
     if (data && !data.poll) setShowCreate(true);
@@ -57,6 +92,7 @@ export default function Home() {
       // se ignora
     }
     setPerson(name);
+    maybeShowFlowerModal(name);
   }
 
   function changePerson() {
@@ -168,12 +204,36 @@ export default function Home() {
           Hola, {person}
         </span>
         <div className="topbar-links">
+          <Link href="/flores">🌼 Flores</Link>
           <Link href="/history">Historial</Link>
           <button className="link-btn" onClick={changePerson}>
             Cambiar
           </button>
         </div>
       </header>
+
+      {showFlowerModal && (
+        <div className="flower-modal-overlay">
+          <div className="flower-modal-card">
+            <div className="flower-modal-emoji">🌼</div>
+            <h2>Hoy es 21 de septiembre</h2>
+            <p>Y aquí están tus flores amarillas.</p>
+            <div className="flower-modal-actions">
+              <Link
+                href="/flores"
+                className="big-btn"
+                onClick={dismissFlowerModal}
+                style={{ display: "block", textDecoration: "none", textAlign: "center" }}
+              >
+                Ver mi universo de flores
+              </Link>
+              <button className="link-btn" onClick={dismissFlowerModal}>
+                Ahora no
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <h1>¿Qué comemos este finde? 🍽️</h1>
 
