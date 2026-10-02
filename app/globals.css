@@ -252,6 +252,25 @@ p {
   box-shadow: var(--shadow);
 }
 
+.step-card {
+  margin-bottom: 14px;
+}
+
+.plan-header {
+  margin-bottom: 20px;
+}
+
+.step-question {
+  font-weight: 700;
+  color: var(--accent-dark);
+  margin: 0 0 16px;
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .weekend-date {
   text-transform: capitalize;
   font-weight: 700;
@@ -360,10 +379,27 @@ p {
 .option-main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .option-name {
   display: block;
+}
+
+.option-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-dark);
+  text-decoration: none;
+}
+
+.option-link:hover {
+  text-decoration: underline;
 }
 
 .option-voters {
@@ -372,10 +408,30 @@ p {
   flex-shrink: 0;
 }
 
-.votes-info {
-  font-size: 0.85rem;
+
+.vote-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.vote-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card-alt);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px 5px 5px;
+  font-size: 0.8rem;
   color: var(--muted);
-  margin: 14px 0 0;
+}
+
+.vote-status-pill.voted {
+  color: var(--accent-dark);
+  border-color: var(--accent);
+  font-weight: 600;
 }
 
 .create-toggle {
@@ -422,7 +478,9 @@ p {
 }
 
 input[type="date"],
-input[type="text"] {
+input[type="text"],
+input[type="url"],
+select {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 11px 13px;
@@ -433,7 +491,9 @@ input[type="text"] {
 }
 
 input[type="date"]:focus,
-input[type="text"]:focus {
+input[type="text"]:focus,
+input[type="url"]:focus,
+select:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
@@ -448,6 +508,15 @@ input[type="text"]:focus {
   flex: 1;
 }
 
+.option-row-link {
+  flex-wrap: wrap;
+}
+
+.option-row-link input {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
 .remove-btn {
   background: none;
   border: none;
@@ -455,6 +524,31 @@ input[type="text"]:focus {
   font-size: 1.1rem;
   cursor: pointer;
   padding: 4px 8px;
+}
+
+.step-editor {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  background: var(--card-alt);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.step-editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.step-editor-head select {
+  flex: 1;
+}
+
+.step-question-input {
+  width: 100%;
 }
 
 .history-list {
@@ -471,6 +565,12 @@ input[type="text"]:focus {
   border-radius: var(--radius-lg);
   padding: 18px 20px;
   box-shadow: var(--shadow-sm);
+}
+
+.history-step + .history-step {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
 }
 
 .history-options {
@@ -501,6 +601,9 @@ input[type="text"]:focus {
 .history-option-name {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .history-option-right {
@@ -513,12 +616,6 @@ input[type="text"]:focus {
 .vote-tally {
   font-size: 0.8rem;
   color: var(--muted);
-}
-
-.winner-label {
-  margin: 12px 0 0;
-  font-weight: 700;
-  color: var(--accent-dark);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -545,7 +642,9 @@ input[type="text"]:focus {
   }
 
   input[type="date"],
-  input[type="text"] {
+  input[type="text"],
+  input[type="url"],
+  select {
     background: #191228;
     color: var(--ink);
     border-color: var(--border);

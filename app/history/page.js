@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PEOPLE, PERSON_COLORS } from "@/config";
+import { PEOPLE, PERSON_COLORS, categoryInfo } from "@/config";
 
 const STORAGE_KEY = "miamor_person";
 
@@ -34,18 +34,18 @@ export default function History() {
       .catch(() => setError("No se pudo cargar el historial."));
   }
 
-  async function deletePoll(pollId) {
+  async function deletePlan(planId) {
     if (!person) return;
-    if (!window.confirm("¿Eliminar este finde del historial? No se puede deshacer.")) {
+    if (!window.confirm("¿Eliminar este plan del historial? No se puede deshacer.")) {
       return;
     }
     setError("");
-    setDeletingId(pollId);
+    setDeletingId(planId);
     try {
-      const res = await fetch("/api/poll", {
+      const res = await fetch("/api/plan", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pollId, person }),
+        body: JSON.stringify({ planId, person }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -65,21 +65,21 @@ export default function History() {
       <header className="topbar">
         <Link href="/">← Volver</Link>
       </header>
-      <h1>Historial de findes 📖</h1>
+      <h1>Historial de planes 📖</h1>
       {error && <p className="error">{error}</p>}
       {!history ? (
         <p>Cargando...</p>
       ) : history.length === 0 ? (
-        <div className="empty-card">Todavía no hay findes registrados.</div>
+        <div className="empty-card">Todavía no hay planes registrados.</div>
       ) : (
         <ul className="history-list">
-          {history.map(({ poll, votes }) => (
+          {history.map(({ plan, votes }) => (
             <HistoryItem
-              key={poll.id}
-              poll={poll}
+              key={plan.id}
+              plan={plan}
               votes={votes}
-              onDelete={person ? () => deletePoll(poll.id) : null}
-              deleting={deletingId === poll.id}
+              onDelete={person ? () => deletePlan(plan.id) : null}
+              deleting={deletingId === plan.id}
             />
           ))}
         </ul>
@@ -88,34 +88,48 @@ export default function History() {
   );
 }
 
-function HistoryItem({ poll, votes, onDelete, deleting }) {
-  const counts = {};
-  Object.values(votes).forEach((optId) => {
-    counts[optId] = (counts[optId] || 0) + 1;
-  });
-  const maxVotes = Math.max(0, ...Object.values(counts));
-  const winners = poll.options.filter(
-    (o) => maxVotes > 0 && (counts[o.id] || 0) === maxVotes
-  );
-
+function HistoryItem({ plan, votes, onDelete, deleting }) {
   return (
     <li className="history-item">
       <div className="poll-header">
-        <p className="weekend-date">📅 {formatDate(poll.weekend)}</p>
+        <p className="weekend-date">📅 {formatDate(plan.weekend)}</p>
         {onDelete && (
           <button
             type="button"
             className="icon-btn"
             onClick={onDelete}
             disabled={deleting}
-            aria-label="Eliminar este finde"
+            aria-label="Eliminar este plan"
           >
             🗑️
           </button>
         )}
       </div>
+      {plan.steps.map((step) => (
+        <HistoryStep key={step.id} step={step} votes={votes[step.id] || {}} />
+      ))}
+    </li>
+  );
+}
+
+function HistoryStep({ step, votes }) {
+  const info = categoryInfo(step.category);
+  const counts = {};
+  Object.values(votes).forEach((optId) => {
+    counts[optId] = (counts[optId] || 0) + 1;
+  });
+  const maxVotes = Math.max(0, ...Object.values(counts));
+  const winners = step.options.filter(
+    (o) => maxVotes > 0 && (counts[o.id] || 0) === maxVotes
+  );
+
+  return (
+    <div className="history-step">
+      <p className="step-question">
+        {info.emoji} {step.question}
+      </p>
       <ul className="history-options">
-        {poll.options.map((opt) => {
+        {step.options.map((opt) => {
           const voters = Object.entries(votes).filter(([, v]) => v === opt.id);
           const isWinner = winners.some((w) => w.id === opt.id);
           return (
@@ -123,6 +137,16 @@ function HistoryItem({ poll, votes, onDelete, deleting }) {
               <span className="history-option-name">
                 {isWinner ? "🏆 " : ""}
                 {opt.name}
+                {opt.link && (
+                  <a
+                    href={opt.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="option-link"
+                  >
+                    🔗 Ver
+                  </a>
+                )}
               </span>
               <span className="history-option-right">
                 {voters.map(([p]) => (
@@ -141,7 +165,7 @@ function HistoryItem({ poll, votes, onDelete, deleting }) {
           );
         })}
       </ul>
-    </li>
+    </div>
   );
 }
 

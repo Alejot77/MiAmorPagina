@@ -1,13 +1,14 @@
-# ¿Qué comemos? 🍽️
+# Nuestros planes 💜
 
-App para votar qué comer el fin de semana, entre Stefanny y Alejandro. Un voto por persona, y se guarda el historial de todos los findes anteriores.
+App para planear los findes entre Stefanny y Alejandro: qué comen, qué hacen, qué toman, a qué juegan, dónde están... Un voto por persona y categoría, y se guarda el historial de todos los planes anteriores.
 
 ## Cómo funciona
 
 - Al entrar por primera vez en un dispositivo, cada quien toca su nombre. El celular lo recuerda para la próxima vez ("Cambiar" en la barra de arriba reinicia eso).
-- Cualquiera de los dos puede crear la encuesta del finde con las opciones de comida.
-- Cada persona puede votar (y cambiar su voto) por una sola opción. El voto anterior se reemplaza, nunca se acumulan dos votos de la misma persona.
-- Al crear una encuesta nueva, la anterior queda guardada automáticamente en "Historial".
+- Un plan tiene una o varias **categorías** (comida, actividad, bebida, juego, lugar, u otra personalizada), cada una con sus propias opciones para votar. Las opciones pueden llevar un link (menú del restaurante, Google Maps, etc).
+- Se puede crear un plan con solo una categoría (ej. "solo comida") o con varias de una vez (un día completo). También se puede **agregar una categoría nueva a un plan que ya existe** — por ejemplo, decidir primero la comida y después agregar "qué hacemos".
+- Cada persona puede votar (y cambiar su voto) por una sola opción en cada categoría. El resultado (quién votó qué y quién va ganando) queda oculto hasta que **ambos** hayan votado esa categoría; mientras tanto solo se ve si ya votaste o si falta el otro voto.
+- El plan activo se puede editar (✏️) o eliminar (🗑️) en cualquier momento. Al crear un plan nuevo, el anterior queda guardado automáticamente en "Historial", donde también se puede eliminar.
 
 ## Desplegar en Vercel
 

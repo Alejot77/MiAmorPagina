@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PEOPLE, PERSON_COLORS } from "@/config";
+import { PEOPLE, PERSON_COLORS, CATEGORIES, categoryInfo } from "@/config";
 
 const STORAGE_KEY = "miamor_person";
 const FLOWER_SEEN_KEY = "miamor_flowers_seen";
@@ -21,19 +21,55 @@ function todayKey(d = new Date()) {
   return d.toISOString().slice(0, 10);
 }
 
+function blankStep(category = "comida") {
+  return {
+    category,
+    question: categoryInfo(category).question,
+    options: [
+      { name: "", link: "" },
+      { name: "", link: "" },
+    ],
+  };
+}
+
+function nextCategory(usedKeys) {
+  const used = new Set(usedKeys);
+  const found = CATEGORIES.find((c) => !used.has(c.key));
+  return found ? found.key : "otro";
+}
+
+function stepToDraft(step) {
+  return {
+    id: step.id,
+    category: step.category,
+    question: step.question,
+    options: step.options.map((o) => ({ name: o.name, link: o.link || "" })),
+  };
+}
+
+function draftToPayload(draft) {
+  return {
+    ...(draft.id ? { id: draft.id } : {}),
+    category: draft.category,
+    question: draft.question,
+    options: draft.options,
+  };
+}
+
 export default function Home() {
   const [person, setPerson] = useState(null);
   const [checkedStorage, setCheckedStorage] = useState(false);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [weekend, setWeekend] = useState(nextSaturday());
-  const [options, setOptions] = useState(["", ""]);
-  const [creating, setCreating] = useState(false);
-  const [showCreate, setShowCreate] = useState(false);
   const [showFlowerModal, setShowFlowerModal] = useState(false);
-  const [editingPollId, setEditingPollId] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [formMode, setFormMode] = useState(null); // null | "create" | "edit" | "addCategory"
+  const [weekendInput, setWeekendInput] = useState(nextSaturday());
+  const [draftSteps, setDraftSteps] = useState([]);
+  const [hiddenSteps, setHiddenSteps] = useState([]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     try {
@@ -46,8 +82,12 @@ export default function Home() {
       // localStorage no disponible, se ignora
     }
     setCheckedStorage(true);
-    fetchPoll();
+    fetchPlan();
   }, []);
+
+  useEffect(() => {
+    if (data && !data.plan && !formMode) openCreate();
+  }, [data]);
 
   function maybeShowFlowerModal(name) {
     if (name !== FLOWER_PERSON || !isFlowerDay()) return;
@@ -70,18 +110,14 @@ export default function Home() {
     setShowFlowerModal(false);
   }
 
-  useEffect(() => {
-    if (data && !data.poll) setShowCreate(true);
-  }, [data]);
-
-  async function fetchPoll() {
+  async function fetchPlan() {
     setLoading(true);
     try {
-      const res = await fetch("/api/poll");
+      const res = await fetch("/api/plan");
       const json = await res.json();
       setData(json);
     } catch (e) {
-      setError("No se pudo cargar la encuesta.");
+      setError("No se pudo cargar el plan.");
     } finally {
       setLoading(false);
     }
@@ -106,105 +142,115 @@ export default function Home() {
     setPerson(null);
   }
 
-  async function vote(optionId) {
+  async function vote(stepId, optionId) {
     setError("");
     try {
       const res = await fetch("/api/vote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pollId: data.poll.id, person, optionId }),
+        body: JSON.stringify({ planId: data.plan.id, stepId, person, optionId }),
       });
       const json = await res.json();
       if (!res.ok) {
         setError(json.error || "Error al votar");
         return;
       }
-      setData((d) => ({ ...d, votes: json.votes }));
+      setData((d) => ({ ...d, votes: { ...d.votes, [stepId]: json.votes } }));
     } catch (e) {
       setError("Error al votar");
     }
   }
 
-  function updateOption(i, value) {
-    setOptions((opts) => opts.map((o, idx) => (idx === i ? value : o)));
+  function openCreate() {
+    setError("");
+    setWeekendInput(nextSaturday());
+    setHiddenSteps([]);
+    setDraftSteps([blankStep("comida")]);
+    setFormMode("create");
   }
 
-  function addOption() {
-    setOptions((opts) => [...opts, ""]);
+  function openEdit() {
+    if (!data?.plan) return;
+    setError("");
+    setWeekendInput(data.plan.weekend);
+    setHiddenSteps([]);
+    setDraftSteps(data.plan.steps.map(stepToDraft));
+    setFormMode("edit");
   }
 
-  function removeOption(i) {
-    setOptions((opts) => opts.filter((_, idx) => idx !== i));
+  function openAddCategory() {
+    if (!data?.plan) return;
+    setError("");
+    setWeekendInput(data.plan.weekend);
+    setHiddenSteps(data.plan.steps.map(stepToDraft));
+    const used = data.plan.steps.map((s) => s.category);
+    setDraftSteps([blankStep(nextCategory(used))]);
+    setFormMode("addCategory");
   }
 
-  async function createPoll(e) {
+  function closeForm() {
+    setFormMode(null);
+    setDraftSteps([]);
+    setHiddenSteps([]);
+  }
+
+  function addDraftStep() {
+    const used = [...hiddenSteps, ...draftSteps].map((s) => s.category);
+    setDraftSteps((ds) => [...ds, blankStep(nextCategory(used))]);
+  }
+
+  async function submitSteps(e) {
     e.preventDefault();
     setError("");
-    setCreating(true);
+    setSaving(true);
     try {
-      const isEditing = Boolean(editingPollId);
-      const res = await fetch("/api/poll", {
-        method: isEditing ? "PATCH" : "POST",
+      const steps = [...hiddenSteps, ...draftSteps].map(draftToPayload);
+      const isEdit = formMode === "edit" || formMode === "addCategory";
+      const res = await fetch("/api/plan", {
+        method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
-          isEditing
-            ? { pollId: editingPollId, weekend, options, person }
-            : { weekend, options, person }
+          isEdit
+            ? { planId: data.plan.id, weekend: weekendInput, person, steps }
+            : { weekend: weekendInput, person, steps }
         ),
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json.error || "Error al guardar la encuesta");
+        setError(json.error || "Error al guardar el plan");
         return;
       }
-      setData((d) => ({ poll: json.poll, votes: json.votes, people: d?.people }));
-      setOptions(["", ""]);
-      setWeekend(nextSaturday());
-      setShowCreate(false);
-      setEditingPollId(null);
+      setData((d) => ({ plan: json.plan, votes: json.votes, people: d?.people }));
+      closeForm();
     } catch (e) {
-      setError("Error al guardar la encuesta");
+      setError("Error al guardar el plan");
     } finally {
-      setCreating(false);
+      setSaving(false);
     }
   }
 
-  function startEdit(poll) {
-    setError("");
-    setEditingPollId(poll.id);
-    setWeekend(poll.weekend);
-    setOptions(poll.options.map((o) => o.name));
-    setShowCreate(true);
-  }
-
-  function cancelEdit() {
-    setEditingPollId(null);
-    setOptions(["", ""]);
-    setWeekend(nextSaturday());
-    setShowCreate(false);
-  }
-
-  async function deletePoll(pollId) {
-    if (!window.confirm("¿Eliminar esta encuesta y sus votos? No se puede deshacer.")) {
+  async function deletePlan() {
+    if (!data?.plan) return;
+    if (!window.confirm("¿Eliminar este plan y todos sus votos? No se puede deshacer.")) {
       return;
     }
     setError("");
     setDeleting(true);
     try {
-      const res = await fetch("/api/poll", {
+      const res = await fetch("/api/plan", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pollId, person }),
+        body: JSON.stringify({ planId: data.plan.id, person }),
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json.error || "Error al eliminar la encuesta");
+        setError(json.error || "Error al eliminar el plan");
         return;
       }
-      if (editingPollId === pollId) cancelEdit();
-      await fetchPoll();
+      closeForm();
+      await fetchPlan();
     } catch (e) {
-      setError("Error al eliminar la encuesta");
+      setError("Error al eliminar el plan");
     } finally {
       setDeleting(false);
     }
@@ -220,8 +266,8 @@ export default function Home() {
     return (
       <main className="wrap center">
         <div className="landing-card">
-          <div className="landing-emoji">🍽️</div>
-          <h1>¿Qué comemos?</h1>
+          <div className="landing-emoji">💜</div>
+          <h1>Nuestros planes</h1>
           <p className="subtitle">¿Quién eres?</p>
           <div className="people-buttons">
             {people.map((p) => (
@@ -284,91 +330,100 @@ export default function Home() {
         </div>
       )}
 
-      <h1>¿Qué comemos este finde? 🍽️</h1>
+      <h1>¿Qué planeamos este finde? 💜</h1>
 
       {error && <p className="error">{error}</p>}
 
       {loading ? (
         <p>Cargando...</p>
-      ) : data?.poll ? (
-        <PollView
-          poll={data.poll}
-          votes={data.votes}
-          person={person}
-          people={people}
-          onVote={vote}
-          onEdit={() => startEdit(data.poll)}
-          onDelete={() => deletePoll(data.poll.id)}
-          deleting={deleting}
-        />
+      ) : data?.plan ? (
+        <>
+          <div className="poll-header plan-header">
+            <p className="weekend-date">📅 Finde del {formatDate(data.plan.weekend)}</p>
+            <div className="poll-actions">
+              <button type="button" className="icon-btn" onClick={openEdit} aria-label="Editar plan">
+                ✏️
+              </button>
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={deletePlan}
+                disabled={deleting}
+                aria-label="Eliminar plan"
+              >
+                🗑️
+              </button>
+            </div>
+          </div>
+          {data.plan.steps.map((step) => (
+            <StepCard
+              key={step.id}
+              step={step}
+              votes={data.votes[step.id] || {}}
+              person={person}
+              people={people}
+              onVote={(optionId) => vote(step.id, optionId)}
+            />
+          ))}
+        </>
       ) : (
         <div className="empty-card">
-          Todavía no hay encuesta para este finde.
+          Todavía no hay plan para este finde.
           <br />
-          ¡Crea una abajo! 👇
+          ¡Crea uno abajo! 👇
         </div>
       )}
 
-      {!showCreate && data?.poll && (
-        <button className="create-toggle" onClick={() => setShowCreate(true)}>
-          + Proponer opciones para otro finde
+      {!formMode && data?.plan && (
+        <button className="create-toggle" onClick={openAddCategory}>
+          + Agregar otra categoría a este plan
         </button>
       )}
 
-      {showCreate && (
+      {formMode && (
         <section className="create-section">
           <h2>
-            {editingPollId
-              ? "Editar encuesta"
-              : data?.poll
-              ? "Encuesta para otro finde"
-              : "Crear encuesta"}
+            {formMode === "create" && "Crear plan"}
+            {formMode === "edit" && "Editar plan"}
+            {formMode === "addCategory" && "Agregar categoría"}
           </h2>
-          <form onSubmit={createPoll}>
-            <label>
-              Fecha del finde
-              <input
-                type="date"
-                value={weekend}
-                onChange={(e) => setWeekend(e.target.value)}
-                required
-              />
-            </label>
-            {options.map((opt, i) => (
-              <div key={i} className="option-row">
+          <form onSubmit={submitSteps}>
+            {formMode !== "addCategory" && (
+              <label>
+                Fecha del finde
                 <input
-                  type="text"
-                  placeholder={`Opción ${i + 1}`}
-                  value={opt}
-                  onChange={(e) => updateOption(i, e.target.value)}
+                  type="date"
+                  value={weekendInput}
+                  onChange={(e) => setWeekendInput(e.target.value)}
+                  required
                 />
-                {options.length > 2 && (
-                  <button
-                    type="button"
-                    className="remove-btn"
-                    onClick={() => removeOption(i)}
-                    aria-label="Quitar opción"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
-            <button type="button" className="link-btn" onClick={addOption}>
-              + Agregar opción
-            </button>
-            <button type="submit" className="big-btn" disabled={creating}>
-              {creating
-                ? "Guardando..."
-                : editingPollId
-                ? "Guardar cambios"
-                : "Crear encuesta"}
-            </button>
-            {editingPollId && (
-              <button type="button" className="link-btn" onClick={cancelEdit}>
-                Cancelar edición
-              </button>
+              </label>
             )}
+
+            {draftSteps.map((step, i) => (
+              <StepEditor
+                key={i}
+                step={step}
+                onChange={(updated) =>
+                  setDraftSteps((ds) => ds.map((s, idx) => (idx === i ? updated : s)))
+                }
+                onRemove={
+                  hiddenSteps.length + draftSteps.length > 1
+                    ? () => setDraftSteps((ds) => ds.filter((_, idx) => idx !== i))
+                    : undefined
+                }
+              />
+            ))}
+
+            <button type="button" className="link-btn" onClick={addDraftStep}>
+              + Agregar otra categoría
+            </button>
+            <button type="submit" className="big-btn" disabled={saving}>
+              {saving ? "Guardando..." : formMode === "create" ? "Crear plan" : "Guardar"}
+            </button>
+            <button type="button" className="link-btn" onClick={closeForm}>
+              Cancelar
+            </button>
           </form>
         </section>
       )}
@@ -376,73 +431,186 @@ export default function Home() {
   );
 }
 
-function PollView({ poll, votes, person, people, onVote, onEdit, onDelete, deleting }) {
+function StepEditor({ step, onChange, onRemove }) {
+  const info = categoryInfo(step.category);
+
+  function setCategory(category) {
+    onChange({ ...step, category, question: categoryInfo(category).question });
+  }
+
+  function setQuestion(question) {
+    onChange({ ...step, question });
+  }
+
+  function setOption(i, field, value) {
+    const options = step.options.map((o, idx) => (idx === i ? { ...o, [field]: value } : o));
+    onChange({ ...step, options });
+  }
+
+  function addOption() {
+    onChange({ ...step, options: [...step.options, { name: "", link: "" }] });
+  }
+
+  function removeOption(i) {
+    onChange({ ...step, options: step.options.filter((_, idx) => idx !== i) });
+  }
+
+  return (
+    <div className="step-editor">
+      <div className="step-editor-head">
+        <select value={step.category} onChange={(e) => setCategory(e.target.value)}>
+          {CATEGORIES.map((c) => (
+            <option key={c.key} value={c.key}>
+              {c.emoji} {c.label}
+            </option>
+          ))}
+        </select>
+        {onRemove && (
+          <button
+            type="button"
+            className="remove-btn"
+            onClick={onRemove}
+            aria-label="Quitar categoría"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+      <input
+        type="text"
+        className="step-question-input"
+        value={step.question}
+        onChange={(e) => setQuestion(e.target.value)}
+        placeholder={info.question}
+      />
+      {step.options.map((opt, i) => (
+        <div key={i} className="option-row option-row-link">
+          <input
+            type="text"
+            placeholder={`Opción ${i + 1}`}
+            value={opt.name}
+            onChange={(e) => setOption(i, "name", e.target.value)}
+          />
+          <input
+            type="url"
+            placeholder="Link (opcional)"
+            value={opt.link}
+            onChange={(e) => setOption(i, "link", e.target.value)}
+          />
+          {step.options.length > 2 && (
+            <button
+              type="button"
+              className="remove-btn"
+              onClick={() => removeOption(i)}
+              aria-label="Quitar opción"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      ))}
+      <button type="button" className="link-btn" onClick={addOption}>
+        + Agregar opción
+      </button>
+    </div>
+  );
+}
+
+function StepCard({ step, votes, person, people, onVote }) {
   const myVote = votes[person];
+  const allVoted = people.length > 0 && people.every((p) => Boolean(votes[p]));
+  const info = categoryInfo(step.category);
+
   const counts = {};
   Object.values(votes).forEach((optId) => {
     counts[optId] = (counts[optId] || 0) + 1;
   });
   const maxVotes = Math.max(0, ...Object.values(counts));
 
+  function handleKeyDown(e, optionId) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onVote(optionId);
+    }
+  }
+
   return (
-    <section className="poll">
-      <div className="poll-header">
-        <p className="weekend-date">📅 Finde del {formatDate(poll.weekend)}</p>
-        <div className="poll-actions">
-          <button type="button" className="icon-btn" onClick={onEdit} aria-label="Editar encuesta">
-            ✏️
-          </button>
-          <button
-            type="button"
-            className="icon-btn"
-            onClick={onDelete}
-            disabled={deleting}
-            aria-label="Eliminar encuesta"
-          >
-            🗑️
-          </button>
-        </div>
-      </div>
+    <section className="poll step-card">
+      <p className="step-question">
+        {info.emoji} {step.question}
+      </p>
       <ul className="options-list">
-        {poll.options.map((opt) => {
+        {step.options.map((opt) => {
           const selected = myVote === opt.id;
           const voteCount = counts[opt.id] || 0;
-          const isWinning = maxVotes > 0 && voteCount === maxVotes;
-          const voters = Object.entries(votes).filter(([, v]) => v === opt.id);
+          const isWinning = allVoted && maxVotes > 0 && voteCount === maxVotes;
+          const voters = allVoted ? Object.entries(votes).filter(([, v]) => v === opt.id) : [];
           return (
             <li key={opt.id}>
-              <button
+              <div
                 className={`option-btn ${selected ? "selected" : ""} ${
                   isWinning ? "winning" : ""
                 }`}
+                role="button"
+                tabIndex={0}
                 onClick={() => onVote(opt.id)}
+                onKeyDown={(e) => handleKeyDown(e, opt.id)}
               >
                 <span className="option-radio" />
                 <span className="option-main">
                   <span className="option-name">{opt.name}</span>
-                </span>
-                <span className="option-voters">
-                  {voters.map(([p]) => (
-                    <span
-                      key={p}
-                      className="avatar sm"
-                      style={{ background: colorFor(p, people) }}
-                      title={p}
+                  {opt.link && (
+                    <a
+                      href={opt.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="option-link"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      {p[0]}
-                    </span>
-                  ))}
+                      🔗 Ver
+                    </a>
+                  )}
                 </span>
-              </button>
+                {allVoted && (
+                  <span className="option-voters">
+                    {voters.map(([p]) => (
+                      <span
+                        key={p}
+                        className="avatar sm"
+                        style={{ background: colorFor(p, people) }}
+                        title={p}
+                      >
+                        {p[0]}
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </div>
             </li>
           );
         })}
       </ul>
-      <p className="votes-info">
-        {myVote
-          ? "Ya votaste. Puedes cambiar tu voto cuando quieras."
-          : "Todavía no has votado."}
-      </p>
+      <div className="vote-status">
+        {people.map((p) => {
+          const voted = Boolean(votes[p]);
+          const isMe = p === person;
+          return (
+            <span key={p} className={`vote-status-pill ${voted ? "voted" : ""}`}>
+              <span className="avatar sm" style={{ background: colorFor(p, people) }}>
+                {p[0]}
+              </span>
+              {isMe ? "Tú" : p}:{" "}
+              {isMe
+                ? voted
+                  ? "ya votaste"
+                  : "aún no votas"
+                : voted
+                ? "ya votó"
+                : "falta que vote"}
+            </span>
+          );
+        })}
+      </div>
     </section>
   );
 }
