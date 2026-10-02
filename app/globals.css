@@ -108,9 +108,10 @@ p {
   top: calc(12px + env(safe-area-inset-top, 0px));
   z-index: 5;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px 10px;
   font-size: 0.92rem;
   color: var(--muted);
   margin: 0 0 18px;
@@ -137,8 +138,11 @@ p {
 
 .topbar-links {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 10px 14px;
   align-items: center;
+  justify-content: flex-end;
+  font-size: 0.85rem;
 }
 
 .avatar {
@@ -875,4 +879,196 @@ select:focus {
   .flores-label {
     font-size: 0.68rem;
   }
+}
+
+/* Editor de categorias: toggle de 2 pasos y vista previa de tipos */
+
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.checkbox-row input[type="checkbox"] {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.checkbox-row a {
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.food-type-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.food-type-chip {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+}
+
+/* Paso resuelto (tipo de comida ya votado, generando el paso de sitio) */
+
+.resolved-banner {
+  background: var(--card-alt);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin: 0 0 14px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.resolved-banner strong {
+  color: var(--accent-dark);
+}
+
+.hint-text {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 10px 0 0;
+}
+
+.hint-text a {
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+/* Resumen del plan */
+
+.summary-card {
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.summary-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.summary-category {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.summary-winner {
+  font-weight: 700;
+  color: var(--accent-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Catalogo de sitios */
+
+.places-group {
+  margin-top: 20px;
+}
+
+.places-group h2 {
+  margin: 0 0 10px;
+}
+
+.places-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.place-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+.place-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Ruleta */
+
+.ruleta-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.ruleta-card {
+  text-align: center;
+}
+
+.ruleta-display {
+  background: var(--card-alt);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 32px 16px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 16px;
+}
+
+.ruleta-display.spinning {
+  color: var(--accent-dark);
+  animation: ruleta-pulse 0.2s ease infinite alternate;
+}
+
+.ruleta-display.winner {
+  border-style: solid;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+@keyframes ruleta-pulse {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.03);
+  }
+}
+
+.ruleta-result {
+  font-weight: 700;
+  color: var(--accent-dark);
+  margin: 0 0 16px;
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
-import { PEOPLE, categoryInfo } from "@/config";
+import { PEOPLE, categoryInfo, FOOD_TYPES } from "@/config";
 
 export const dynamic = "force-dynamic";
 
@@ -19,31 +19,53 @@ function normalizeSteps(rawSteps) {
         ? s.question.trim()
         : categoryInfo(category).question;
 
-    const cleanOptions = Array.isArray(s.options)
-      ? s.options
-          .map((o) => ({
-            name: typeof o?.name === "string" ? o.name.trim() : "",
-            link: typeof o?.link === "string" ? o.link.trim() : "",
-          }))
-          .filter((o) => o.name)
-      : [];
-
-    if (cleanOptions.length < 2) return null;
-
-    // Se mantiene el id si ya existia (para no perder los votos de ese paso),
-    // y se crea uno nuevo solo para pasos agregados.
+    // Id estable: se mantiene si ya existia (para no perder los votos de ese
+    // paso), y se crea uno nuevo solo para pasos agregados.
     const id = typeof s.id === "string" && s.id ? s.id : `step${Date.now()}${i}`;
 
-    steps.push({
-      id,
-      category,
-      question,
-      options: cleanOptions.map((o, j) => ({
+    // Comida en 2 pasos: el "tipo" se vota entre FOOD_TYPES fijos, y el
+    // paso de "sitio" lo genera automaticamente /api/vote segun el catalogo.
+    const twoPhase = category === "comida" && Boolean(s.twoPhase);
+
+    let options;
+    let kind;
+
+    if (twoPhase) {
+      options = FOOD_TYPES.map((f) => ({ id: f.key, name: f.label }));
+      kind = "comida-tipo";
+    } else {
+      const cleanOptions = Array.isArray(s.options)
+        ? s.options
+            .map((o) => ({
+              name: typeof o?.name === "string" ? o.name.trim() : "",
+              link: typeof o?.link === "string" ? o.link.trim() : "",
+            }))
+            .filter((o) => o.name)
+        : [];
+
+      if (cleanOptions.length < 2) return null;
+
+      options = cleanOptions.map((o, j) => ({
         id: `opt${j}`,
         name: o.name,
         ...(o.link ? { link: o.link } : {}),
-      })),
-    });
+      }));
+      // "comida-lugar" es el paso generado automaticamente: se conserva ese
+      // tipo si el cliente lo reenvia tal cual (edicion sin tocar el toggle).
+      if (typeof s.kind === "string" && s.kind) kind = s.kind;
+    }
+
+    const step = { id, category, question, options };
+    if (kind) step.kind = kind;
+    if (twoPhase) step.twoPhase = true;
+    if (typeof s.generatedStepId === "string" && s.generatedStepId) {
+      step.generatedStepId = s.generatedStepId;
+    }
+    if (typeof s.generatedFrom === "string" && s.generatedFrom) {
+      step.generatedFrom = s.generatedFrom;
+    }
+
+    steps.push(step);
   }
 
   return steps;

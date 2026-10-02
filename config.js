@@ -20,3 +20,18 @@ export function categoryInfo(key) {
   return CATEGORIES.find((c) => c.key === key) || CATEGORIES[CATEGORIES.length - 1];
 }
 
+// Tipos de comida usados en el flujo de 2 pasos (tipo -> sitio) y en el
+// catalogo de "Sitios". El "key" tambien se usa como categoria de los sitios.
+export const FOOD_TYPES = [
+  { key: "hamburguesa", label: "Hamburguesa", emoji: "🍔" },
+  { key: "pizza", label: "Pizza", emoji: "🍕" },
+  { key: "papas", label: "Papas", emoji: "🍟" },
+  { key: "burritos", label: "Burritos", emoji: "🌯" },
+  { key: "arepas", label: "Arepas", emoji: "🫓" },
+  { key: "otro", label: "Otro", emoji: "🍽️" },
+];
+
+export function foodTypeInfo(key) {
+  return FOOD_TYPES.find((f) => f.key === key) || FOOD_TYPES[FOOD_TYPES.length - 1];
+}
+

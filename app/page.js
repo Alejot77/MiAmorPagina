@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PEOPLE, PERSON_COLORS, CATEGORIES, categoryInfo } from "@/config";
+import { PEOPLE, PERSON_COLORS, CATEGORIES, categoryInfo, FOOD_TYPES, foodTypeInfo } from "@/config";
 
 const STORAGE_KEY = "miamor_person";
 const FLOWER_SEEN_KEY = "miamor_flowers_seen";
@@ -25,6 +25,7 @@ function blankStep(category = "comida") {
   return {
     category,
     question: categoryInfo(category).question,
+    twoPhase: category === "comida",
     options: [
       { name: "", link: "" },
       { name: "", link: "" },
@@ -43,6 +44,10 @@ function stepToDraft(step) {
     id: step.id,
     category: step.category,
     question: step.question,
+    twoPhase: Boolean(step.twoPhase),
+    kind: step.kind,
+    generatedStepId: step.generatedStepId,
+    generatedFrom: step.generatedFrom,
     options: step.options.map((o) => ({ name: o.name, link: o.link || "" })),
   };
 }
@@ -52,8 +57,16 @@ function draftToPayload(draft) {
     ...(draft.id ? { id: draft.id } : {}),
     category: draft.category,
     question: draft.question,
+    twoPhase: Boolean(draft.twoPhase),
+    ...(draft.kind ? { kind: draft.kind } : {}),
+    ...(draft.generatedStepId ? { generatedStepId: draft.generatedStepId } : {}),
+    ...(draft.generatedFrom ? { generatedFrom: draft.generatedFrom } : {}),
     options: draft.options,
   };
+}
+
+function isStepSuperseded(step, allSteps) {
+  return Boolean(step.generatedStepId) && allSteps.some((s) => s.id === step.generatedStepId);
 }
 
 export default function Home() {
@@ -155,7 +168,7 @@ export default function Home() {
         setError(json.error || "Error al votar");
         return;
       }
-      setData((d) => ({ ...d, votes: { ...d.votes, [stepId]: json.votes } }));
+      setData((d) => ({ ...d, plan: json.plan, votes: json.votes }));
     } catch (e) {
       setError("Error al votar");
     }
@@ -261,6 +274,13 @@ export default function Home() {
   }
 
   const people = data?.people || PEOPLE;
+  const activeSteps = data?.plan
+    ? data.plan.steps.filter((s) => !isStepSuperseded(s, data.plan.steps))
+    : [];
+  const planComplete =
+    data?.plan &&
+    activeSteps.length > 0 &&
+    activeSteps.every((s) => people.every((p) => Boolean((data.votes[s.id] || {})[p])));
 
   if (!person) {
     return (
@@ -299,6 +319,8 @@ export default function Home() {
           Hola, {person}
         </span>
         <div className="topbar-links">
+          <Link href="/lugares">📍 Sitios</Link>
+          <Link href="/ruleta">🎡 Ruleta</Link>
           <Link href="/flores">🌼 Flores</Link>
           <Link href="/history">Historial</Link>
           <button className="link-btn" onClick={changePerson}>
@@ -355,16 +377,23 @@ export default function Home() {
               </button>
             </div>
           </div>
-          {data.plan.steps.map((step) => (
-            <StepCard
-              key={step.id}
-              step={step}
-              votes={data.votes[step.id] || {}}
-              person={person}
-              people={people}
-              onVote={(optionId) => vote(step.id, optionId)}
-            />
-          ))}
+          {planComplete && (
+            <Summary plan={data.plan} votes={data.votes} activeSteps={activeSteps} />
+          )}
+          {data.plan.steps.map((step) =>
+            isStepSuperseded(step, data.plan.steps) ? (
+              <ResolvedBanner key={step.id} step={step} votes={data.votes[step.id] || {}} />
+            ) : (
+              <StepCard
+                key={step.id}
+                step={step}
+                votes={data.votes[step.id] || {}}
+                person={person}
+                people={people}
+                onVote={(optionId) => vote(step.id, optionId)}
+              />
+            )
+          )}
         </>
       ) : (
         <div className="empty-card">
@@ -433,9 +462,21 @@ export default function Home() {
 
 function StepEditor({ step, onChange, onRemove }) {
   const info = categoryInfo(step.category);
+  const isComida = step.category === "comida";
 
   function setCategory(category) {
-    onChange({ ...step, category, question: categoryInfo(category).question });
+    onChange({
+      ...step,
+      category,
+      question: categoryInfo(category).question,
+      twoPhase: category === "comida",
+      kind: undefined,
+      generatedStepId: undefined,
+    });
+  }
+
+  function setTwoPhase(twoPhase) {
+    onChange({ ...step, twoPhase, kind: undefined, generatedStepId: undefined });
   }
 
   function setQuestion(question) {
@@ -483,35 +524,63 @@ function StepEditor({ step, onChange, onRemove }) {
         onChange={(e) => setQuestion(e.target.value)}
         placeholder={info.question}
       />
-      {step.options.map((opt, i) => (
-        <div key={i} className="option-row option-row-link">
+
+      {isComida && (
+        <label className="checkbox-row">
           <input
-            type="text"
-            placeholder={`Opción ${i + 1}`}
-            value={opt.name}
-            onChange={(e) => setOption(i, "name", e.target.value)}
+            type="checkbox"
+            checked={step.twoPhase}
+            onChange={(e) => setTwoPhase(e.target.checked)}
           />
-          <input
-            type="url"
-            placeholder="Link (opcional)"
-            value={opt.link}
-            onChange={(e) => setOption(i, "link", e.target.value)}
-          />
-          {step.options.length > 2 && (
-            <button
-              type="button"
-              className="remove-btn"
-              onClick={() => removeOption(i)}
-              aria-label="Quitar opción"
-            >
-              ✕
-            </button>
-          )}
+          Votar primero el tipo de comida y luego el sitio (según tu catálogo de{" "}
+          <Link href="/lugares" target="_blank">
+            Sitios
+          </Link>
+          )
+        </label>
+      )}
+
+      {isComida && step.twoPhase ? (
+        <div className="food-type-preview">
+          {FOOD_TYPES.map((f) => (
+            <span key={f.key} className="food-type-chip">
+              {f.emoji} {f.label}
+            </span>
+          ))}
         </div>
-      ))}
-      <button type="button" className="link-btn" onClick={addOption}>
-        + Agregar opción
-      </button>
+      ) : (
+        <>
+          {step.options.map((opt, i) => (
+            <div key={i} className="option-row option-row-link">
+              <input
+                type="text"
+                placeholder={`Opción ${i + 1}`}
+                value={opt.name}
+                onChange={(e) => setOption(i, "name", e.target.value)}
+              />
+              <input
+                type="url"
+                placeholder="Link (opcional)"
+                value={opt.link}
+                onChange={(e) => setOption(i, "link", e.target.value)}
+              />
+              {step.options.length > 2 && (
+                <button
+                  type="button"
+                  className="remove-btn"
+                  onClick={() => removeOption(i)}
+                  aria-label="Quitar opción"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+          <button type="button" className="link-btn" onClick={addOption}>
+            + Agregar opción
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -611,6 +680,65 @@ function StepCard({ step, votes, person, people, onVote }) {
           );
         })}
       </div>
+      {step.kind === "comida-tipo" && allVoted && !step.generatedStepId && (
+        <p className="hint-text">
+          No tienes suficientes sitios guardados de ese tipo. Agrégalos en{" "}
+          <Link href="/lugares">Sitios</Link> para elegir uno la próxima vez.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function ResolvedBanner({ step, votes }) {
+  const info = categoryInfo(step.category);
+  const chosen = [...new Set(Object.values(votes))];
+  const labels = chosen.map((key) => foodTypeInfo(key).label).join(" y ");
+  return (
+    <p className="resolved-banner">
+      {info.emoji} {step.question}: <strong>{labels}</strong> → elige el sitio abajo 👇
+    </p>
+  );
+}
+
+function Summary({ plan, votes, activeSteps }) {
+  return (
+    <section className="poll summary-card">
+      <p className="step-question">🎉 ¡Su plan está listo!</p>
+      <ul className="summary-list">
+        {activeSteps.map((step) => {
+          const stepVotes = votes[step.id] || {};
+          const counts = {};
+          Object.values(stepVotes).forEach((id) => {
+            counts[id] = (counts[id] || 0) + 1;
+          });
+          const maxVotes = Math.max(0, ...Object.values(counts));
+          const winners = step.options.filter(
+            (o) => maxVotes > 0 && (counts[o.id] || 0) === maxVotes
+          );
+          const info = categoryInfo(step.category);
+          return (
+            <li key={step.id}>
+              <span className="summary-category">
+                {info.emoji} {step.question}
+              </span>
+              <span className="summary-winner">
+                {winners.map((w) => w.name).join(" y ")}
+                {winners.length === 1 && winners[0].link && (
+                  <a
+                    href={winners[0].link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="option-link"
+                  >
+                    🔗 Ver
+                  </a>
+                )}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }
