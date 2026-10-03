@@ -467,14 +467,13 @@ export default function Home() {
     <>
       <header className="topbar">
         <div className="topbar-inner">
-          <span className="topbar-greeting">
+          <Link href="/perfil" className="topbar-greeting" title="Ver mi perfil">
             <span className="avatar" style={{ background: colorFor(person, people) }}>
               {person[0]}
             </span>
             Hola, {person}
-          </span>
+          </Link>
           <div className="topbar-links">
-            <Link href="/perfil">🏆 Perfil</Link>
             <Link href="/lugares">📍 Sitios</Link>
             <Link href="/ruleta">🎡 Ruleta</Link>
             <Link href="/flores">🌼 Flores</Link>
