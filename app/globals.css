@@ -82,27 +82,38 @@ h2,
   justify-content: center;
   text-align: center;
   padding: 24px 20px;
-  background: radial-gradient(900px 600px at 50% -10%, #15423b 0%, transparent 60%),
-    linear-gradient(180deg, #0b1f1b, #071411);
+  background: radial-gradient(900px 600px at 50% -10%, #23262d 0%, transparent 60%),
+    linear-gradient(180deg, #15171b, #0c0d10);
 }
 
 .landing-card {
-  background: #102420;
-  border: 1px solid #1f453d;
+  background: #1a1c21;
+  border: 1px solid #2b2e35;
   border-radius: var(--radius-lg);
   box-shadow: 0 20px 50px -18px rgba(0, 0, 0, 0.6);
   padding: 36px 28px;
   width: 100%;
   max-width: 340px;
-  color: #f3ead0;
+  color: #eceef1;
 }
 
 .landing-card h1 {
-  color: #f6efd9;
+  color: #f5f6f8;
 }
 
 .landing-card .subtitle {
-  color: #a9c9c0;
+  color: #9aa0ab;
+}
+
+.landing-card input[type="password"] {
+  background: #101216;
+  border: 1px solid #2b2e35;
+  color: #eceef1;
+}
+
+.landing-card input[type="password"]:focus {
+  outline: 2px solid #6b7280;
+  outline-offset: 1px;
 }
 
 .landing-emoji {
@@ -233,27 +244,36 @@ p {
 }
 
 .password-form input[type="password"] {
-  background: #0b1a17;
-  border: 1px solid #244d44;
-  color: #f3ead0;
-  border-radius: var(--radius-sm);
-  padding: 12px 13px;
-  font-size: 1.1rem;
   text-align: center;
   letter-spacing: 0.3em;
-}
-
-.password-form input[type="password"]:focus {
-  outline: 2px solid #3fae8f;
-  outline-offset: 1px;
 }
 
 .password-form .error {
   margin: 0;
 }
 
-.password-form .link-btn {
-  color: #a9c9c0;
+.password-hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: -8px 0 0;
+  text-align: left;
+}
+
+.password-success {
+  color: #2e9e5b;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* En la pantalla de inicio el texto va sobre la tarjeta neutral, no sobre
+   el tema de la persona (todavia no se sabe quien es). */
+.landing-card .password-hint {
+  color: #9aa0ab;
+}
+
+.landing-card .link-btn {
+  color: #c9ccd2;
 }
 
 .person-btn {
@@ -606,6 +626,7 @@ p {
 input[type="date"],
 input[type="text"],
 input[type="url"],
+input[type="password"],
 select {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -619,6 +640,7 @@ select {
 input[type="date"]:focus,
 input[type="text"]:focus,
 input[type="url"]:focus,
+input[type="password"]:focus,
 select:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
@@ -771,6 +793,7 @@ select:focus {
   input[type="date"],
   input[type="text"],
   input[type="url"],
+  input[type="password"],
   select {
     background: #191228;
     color: var(--ink);
@@ -821,6 +844,7 @@ select:focus {
 :root[data-person="Alejandro"] input[type="date"],
 :root[data-person="Alejandro"] input[type="text"],
 :root[data-person="Alejandro"] input[type="url"],
+:root[data-person="Alejandro"] input[type="password"],
 :root[data-person="Alejandro"] select {
   background: #150a0b;
   color: var(--ink);
@@ -852,6 +876,7 @@ select:focus {
 :root[data-person="Stefanny"] input[type="date"],
 :root[data-person="Stefanny"] input[type="text"],
 :root[data-person="Stefanny"] input[type="url"],
+:root[data-person="Stefanny"] input[type="password"],
 :root[data-person="Stefanny"] select {
   background: white;
   color: var(--ink);
@@ -1489,4 +1514,10 @@ select:focus {
   color: var(--ink);
   margin: 10px 0 0;
   font-weight: 600;
+}
+
+.profile-password {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
 }

@@ -33,9 +33,18 @@ Edita [config.js](config.js) y cambia los valores de `PEOPLE`.
 
 ## Clave por persona
 
-En [config.js](config.js), `PERSON_PASSWORDS` tiene una clave opcional por
-persona (mismo orden que `PEOPLE`). Déjala en `""` para que esa persona
-entre sin clave, o ponle un valor para que la pida antes de entrar.
-Ojo: es una barrera liviana (el valor va en el código del navegador), no
-seguridad real — alcanza para que el otro no entre por error o curiosidad,
-no para proteger datos sensibles.
+La primera vez que alguien entra a su nombre, la app le pide crear una
+clave (dos veces, para confirmar). Las próximas veces en ese mismo
+dispositivo no la vuelve a pedir ("Cambiar" en el menú sí te manda de
+nuevo a elegir nombre y clave). La clave se guarda con hash (no en texto
+plano) en la base de datos, no en el código — así, para entrar como la
+otra persona en OTRO dispositivo hace falta su clave real, no algo
+visible en el código fuente. Cada quien puede cambiar su propia clave
+desde **Perfil → Cambiar mi clave** (pide la clave actual).
+
+Ojo: sigue siendo una barrera pensada para esta app entre ustedes dos,
+no un sistema de autenticación con todas las de la ley (no hay límite de
+intentos ni recuperación de clave olvidada) — si alguna vez olvidan una
+clave, se borra borrando la fila `auth:<nombre>` en la base de datos
+desde el dashboard de Upstash, y la próxima vez que entren se las vuelve
+a pedir crear.

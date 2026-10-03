@@ -19,6 +19,14 @@ export default function Perfil() {
   const [error, setError] = useState("");
   const [claiming, setClaiming] = useState(null);
 
+  const [showPwForm, setShowPwForm] = useState(false);
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [newPwConfirm, setNewPwConfirm] = useState("");
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -55,6 +63,55 @@ export default function Perfil() {
       setError("Error al reclamar el postre");
     } finally {
       setClaiming(null);
+    }
+  }
+
+  function togglePwForm() {
+    setShowPwForm((v) => !v);
+    setCurrentPw("");
+    setNewPw("");
+    setNewPwConfirm("");
+    setPwError("");
+    setPwSuccess("");
+  }
+
+  async function changePassword(e) {
+    e.preventDefault();
+    setPwError("");
+    setPwSuccess("");
+    if (newPw.length < 4) {
+      setPwError("La clave nueva debe tener al menos 4 caracteres");
+      return;
+    }
+    if (newPw !== newPwConfirm) {
+      setPwError("Las claves nuevas no coinciden");
+      return;
+    }
+    setPwSaving(true);
+    try {
+      const res = await fetch("/api/auth", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          person,
+          currentPassword: currentPw,
+          newPassword: newPw,
+          newPasswordConfirm: newPwConfirm,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setPwError(json.error || "Error al cambiar la clave");
+        return;
+      }
+      setPwSuccess("¡Clave actualizada!");
+      setCurrentPw("");
+      setNewPw("");
+      setNewPwConfirm("");
+    } catch (e) {
+      setPwError("Error de conexión");
+    } finally {
+      setPwSaving(false);
     }
   }
 
@@ -123,6 +180,44 @@ export default function Perfil() {
                     >
                       {claiming === p ? "Reclamando..." : `Reclamar postre de ${p}`}
                     </button>
+                  )}
+
+                  {p === person && (
+                    <div className="profile-password">
+                      <button type="button" className="link-btn" onClick={togglePwForm}>
+                        {showPwForm ? "Cancelar" : "Cambiar mi clave"}
+                      </button>
+                      {showPwForm && (
+                        <form className="password-form" onSubmit={changePassword}>
+                          <input
+                            type="password"
+                            placeholder="Clave actual"
+                            value={currentPw}
+                            onChange={(e) => setCurrentPw(e.target.value)}
+                            required
+                          />
+                          <input
+                            type="password"
+                            placeholder="Clave nueva"
+                            value={newPw}
+                            onChange={(e) => setNewPw(e.target.value)}
+                            required
+                          />
+                          <input
+                            type="password"
+                            placeholder="Repite la clave nueva"
+                            value={newPwConfirm}
+                            onChange={(e) => setNewPwConfirm(e.target.value)}
+                            required
+                          />
+                          {pwError && <p className="error">{pwError}</p>}
+                          {pwSuccess && <p className="password-success">{pwSuccess}</p>}
+                          <button type="submit" className="big-btn" disabled={pwSaving}>
+                            {pwSaving ? "Guardando..." : "Guardar clave nueva"}
+                          </button>
+                        </form>
+                      )}
+                    </div>
                   )}
                 </section>
               );

@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   PEOPLE,
   PERSON_COLORS,
-  PERSON_PASSWORDS,
   CATEGORIES,
   categoryInfo,
   FOOD_TYPES,
@@ -95,8 +94,11 @@ export default function Home() {
   const [saving, setSaving] = useState(false);
   const [pointsToast, setPointsToast] = useState(null);
   const [pendingPerson, setPendingPerson] = useState(null);
+  const [authMode, setAuthMode] = useState(null); // null | "checking" | "login" | "setup"
   const [passwordInput, setPasswordInput] = useState("");
-  const [passwordError, setPasswordError] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [authSaving, setAuthSaving] = useState(false);
 
   useEffect(() => {
     if (!pointsToast) return;
@@ -166,34 +168,72 @@ export default function Home() {
     maybeShowFlowerModal(name);
   }
 
-  function attemptChoose(name) {
-    const idx = PEOPLE.indexOf(name);
-    const pwd = PERSON_PASSWORDS[idx];
-    if (!pwd) {
-      choosePerson(name);
-      return;
-    }
+  async function attemptChoose(name) {
     setPendingPerson(name);
+    setAuthMode("checking");
     setPasswordInput("");
-    setPasswordError("");
-  }
-
-  function submitPassword(e) {
-    e.preventDefault();
-    const idx = PEOPLE.indexOf(pendingPerson);
-    const pwd = PERSON_PASSWORDS[idx];
-    if (passwordInput === pwd) {
-      choosePerson(pendingPerson);
-      setPendingPerson(null);
-    } else {
-      setPasswordError("Clave incorrecta");
+    setPasswordConfirm("");
+    setAuthError("");
+    try {
+      const res = await fetch(`/api/auth?person=${encodeURIComponent(name)}`);
+      const json = await res.json();
+      setAuthMode(json.hasPassword ? "login" : "setup");
+    } catch (e) {
+      setAuthError("No se pudo conectar. Intenta de nuevo.");
+      setAuthMode("login");
     }
   }
 
-  function cancelPassword() {
+  async function submitAuth(e) {
+    e.preventDefault();
+    setAuthError("");
+
+    if (authMode === "setup") {
+      if (passwordInput.length < 4) {
+        setAuthError("La clave debe tener al menos 4 caracteres");
+        return;
+      }
+      if (passwordInput !== passwordConfirm) {
+        setAuthError("Las claves no coinciden");
+        return;
+      }
+    }
+
+    setAuthSaving(true);
+    try {
+      const res = await fetch("/api/auth", {
+        method: authMode === "setup" ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          authMode === "setup"
+            ? {
+                person: pendingPerson,
+                newPassword: passwordInput,
+                newPasswordConfirm: passwordConfirm,
+              }
+            : { person: pendingPerson, password: passwordInput }
+        ),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setAuthError(json.error || "Clave incorrecta");
+        return;
+      }
+      choosePerson(pendingPerson);
+      cancelAuth();
+    } catch (e) {
+      setAuthError("Error de conexión. Intenta de nuevo.");
+    } finally {
+      setAuthSaving(false);
+    }
+  }
+
+  function cancelAuth() {
     setPendingPerson(null);
+    setAuthMode(null);
     setPasswordInput("");
-    setPasswordError("");
+    setPasswordConfirm("");
+    setAuthError("");
   }
 
   function changePerson() {
@@ -343,7 +383,7 @@ export default function Home() {
     return (
       <main className="wrap center">
         <div className="landing-card">
-          <div className="landing-emoji">💚</div>
+          <div className="landing-emoji">🤍</div>
           <h1>Nuestros planes</h1>
 
           {!pendingPerson ? (
@@ -365,9 +405,19 @@ export default function Home() {
                 ))}
               </div>
             </>
+          ) : authMode === "checking" ? (
+            <p className="subtitle">Un momento...</p>
           ) : (
-            <form className="password-form" onSubmit={submitPassword}>
-              <p className="subtitle">Clave de {pendingPerson}</p>
+            <form className="password-form" onSubmit={submitAuth}>
+              <p className="subtitle">
+                {authMode === "setup" ? `Crea tu clave, ${pendingPerson}` : `Clave de ${pendingPerson}`}
+              </p>
+              {authMode === "setup" && (
+                <p className="password-hint">
+                  Es la primera vez que entras: elige una clave de al menos 4 caracteres. La vas a
+                  necesitar la próxima vez.
+                </p>
+              )}
               <input
                 type="password"
                 value={passwordInput}
@@ -375,15 +425,28 @@ export default function Home() {
                 placeholder="••••"
                 autoFocus
               />
-              {passwordError && <p className="error">{passwordError}</p>}
+              {authMode === "setup" && (
+                <input
+                  type="password"
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  placeholder="Repite la clave"
+                />
+              )}
+              {authError && <p className="error">{authError}</p>}
               <button
                 type="submit"
                 className="big-btn"
                 style={{ background: colorFor(pendingPerson, people) }}
+                disabled={authSaving}
               >
-                Entrar
+                {authSaving
+                  ? "Un momento..."
+                  : authMode === "setup"
+                  ? "Crear clave y entrar"
+                  : "Entrar"}
               </button>
-              <button type="button" className="link-btn" onClick={cancelPassword}>
+              <button type="button" className="link-btn" onClick={cancelAuth}>
                 ← Volver
               </button>
             </form>
