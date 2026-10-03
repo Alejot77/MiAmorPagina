@@ -1189,6 +1189,19 @@ select:focus {
   font-weight: 700;
 }
 
+.food-type-preview-wrap {
+  background: var(--card-alt);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.food-type-preview-label {
+  margin: 0 0 8px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
 .food-type-preview {
   display: flex;
   flex-wrap: wrap;
@@ -1198,9 +1211,11 @@ select:focus {
 .food-type-chip {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   padding: 5px 10px;
   font-size: 0.8rem;
+  color: var(--muted);
+  cursor: default;
 }
 
 /* Paso resuelto (tipo de comida ya votado, generando el paso de sitio) */

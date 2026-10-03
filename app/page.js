@@ -720,12 +720,17 @@ function StepEditor({ step, onChange, onRemove }) {
       )}
 
       {isComida && step.twoPhase ? (
-        <div className="food-type-preview">
-          {FOOD_TYPES.map((f) => (
-            <span key={f.key} className="food-type-chip">
-              {f.emoji} {f.label}
-            </span>
-          ))}
+        <div className="food-type-preview-wrap">
+          <p className="food-type-preview-label">
+            Se votará entre estos tipos (no se elige aquí, es informativo):
+          </p>
+          <div className="food-type-preview">
+            {FOOD_TYPES.map((f) => (
+              <span key={f.key} className="food-type-chip">
+                {f.emoji} {f.label}
+              </span>
+            ))}
+          </div>
         </div>
       ) : (
         <>
