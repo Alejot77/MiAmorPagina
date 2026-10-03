@@ -579,9 +579,12 @@ export default function Home() {
         </div>
       )}
 
-      {!formMode && data?.plan && (
-        <button className="create-toggle" onClick={openAddCategory}>
-          + Agregar otra categoría a este plan
+      {!formMode && !loading && (
+        <button
+          className="create-toggle"
+          onClick={data?.plan ? openAddCategory : openCreate}
+        >
+          {data?.plan ? "+ Agregar otra categoría a este plan" : "+ Crear plan"}
         </button>
       )}
 
