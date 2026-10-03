@@ -259,6 +259,37 @@ export default function Home() {
     setAuthError("");
   }
 
+  async function forgotPassword() {
+    if (
+      !window.confirm(
+        `¿Olvidaste tu clave? Esto borra la clave actual de ${pendingPerson} y vas a tener que crear una nueva.`
+      )
+    ) {
+      return;
+    }
+    setAuthError("");
+    setAuthSaving(true);
+    try {
+      const res = await fetch("/api/auth", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ person: pendingPerson }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setAuthError(json.error || "No se pudo reiniciar la clave");
+        return;
+      }
+      setPasswordInput("");
+      setPasswordConfirm("");
+      setAuthMode("setup");
+    } catch (e) {
+      setAuthError("Error de conexión. Intenta de nuevo.");
+    } finally {
+      setAuthSaving(false);
+    }
+  }
+
   function changePerson() {
     try {
       localStorage.removeItem(STORAGE_KEY);
@@ -456,6 +487,11 @@ export default function Home() {
                   ? "Crear clave y entrar"
                   : "Entrar"}
               </button>
+              {authMode === "login" && (
+                <button type="button" className="link-btn" onClick={forgotPassword} disabled={authSaving}>
+                  ¿Olvidaste tu clave?
+                </button>
+              )}
               <button type="button" className="link-btn" onClick={cancelAuth}>
                 ← Volver
               </button>

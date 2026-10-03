@@ -75,3 +75,15 @@ export async function PUT(request) {
   await kv.set(`auth:${person}`, hashPassword(newPassword));
   return NextResponse.json({ ok: true });
 }
+
+// DELETE -> "olvidé mi clave": borra la clave actual. La proxima vez que
+// esa persona entre, la app le pide crear una nueva (como la primera vez).
+export async function DELETE(request) {
+  const body = await request.json();
+  const { person } = body || {};
+  if (!PEOPLE.includes(person)) {
+    return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
+  }
+  await kv.del(`auth:${person}`);
+  return NextResponse.json({ ok: true });
+}

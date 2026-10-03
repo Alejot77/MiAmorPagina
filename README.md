@@ -43,12 +43,14 @@ otra persona en OTRO dispositivo hace falta su clave real, no algo
 visible en el código fuente. Cada quien puede cambiar su propia clave
 desde **Perfil → Cambiar mi clave** (pide la clave actual).
 
-Ojo: sigue siendo una barrera pensada para esta app entre ustedes dos,
-no un sistema de autenticación con todas las de la ley (no hay límite de
-intentos ni recuperación de clave olvidada) — si alguna vez olvidan una
-clave, se borra borrando la fila `auth:<nombre>` en la base de datos
-desde el dashboard de Upstash, y la próxima vez que entren se las vuelve
-a pedir crear.
+Si alguien olvida su clave, en la pantalla donde la pide hay un link
+**"¿Olvidaste tu clave?"** que la borra y manda directo a crear una
+nueva (como la primera vez). No pide verificación de identidad — es
+la misma idea de siempre: una barrera para no entrar sin querer o por
+curiosidad, no un sistema de autenticación con recuperación real
+(sin eso, cualquiera que sepa el nombre podría resetear la clave de
+cualquiera). Si prefieren, también se puede borrar manualmente la fila
+`auth:<nombre>` en la base de datos desde el dashboard de Upstash.
 
 ## Notificaciones
 
