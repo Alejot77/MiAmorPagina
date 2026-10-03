@@ -27,6 +27,13 @@ export default function Perfil() {
   const [pwSuccess, setPwSuccess] = useState("");
   const [pwSaving, setPwSaving] = useState(false);
 
+  const [ppcInput, setPpcInput] = useState("");
+  const [thresholdInput, setThresholdInput] = useState("");
+  const [settingsError, setSettingsError] = useState("");
+  const [settingsSuccess, setSettingsSuccess] = useState("");
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [resettingId, setResettingId] = useState(null);
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -38,10 +45,70 @@ export default function Perfil() {
   }, []);
 
   function load() {
-    fetch("/api/points")
-      .then((r) => r.json())
-      .then(setData)
+    Promise.all([
+      fetch("/api/points").then((r) => r.json()),
+      fetch("/api/settings").then((r) => r.json()),
+    ])
+      .then(([pointsData, settingsData]) => {
+        setData(pointsData);
+        setPpcInput(String(settingsData.pointsPerCategory));
+        setThresholdInput(String(settingsData.dessertThreshold));
+      })
       .catch(() => setError("No se pudo cargar el perfil."));
+  }
+
+  async function saveSettings(e) {
+    e.preventDefault();
+    if (!person) return;
+    setSettingsError("");
+    setSettingsSuccess("");
+    setSettingsSaving(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          person,
+          pointsPerCategory: Number(ppcInput),
+          dessertThreshold: Number(thresholdInput),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setSettingsError(json.error || "Error al guardar la configuración");
+        return;
+      }
+      setSettingsSuccess("¡Configuración guardada!");
+      load();
+    } catch (e) {
+      setSettingsError("Error de conexión");
+    } finally {
+      setSettingsSaving(false);
+    }
+  }
+
+  async function resetPoints(who) {
+    const label = who ? `los puntos de ${who}` : "los puntos de los dos";
+    if (!window.confirm(`¿Reiniciar ${label} a 0? No se puede deshacer.`)) return;
+    setError("");
+    setResettingId(who || "all");
+    try {
+      const res = await fetch("/api/points", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(who ? { person: who } : {}),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error || "Error al reiniciar los puntos");
+        return;
+      }
+      load();
+    } catch (e) {
+      setError("Error al reiniciar los puntos");
+    } finally {
+      setResettingId(null);
+    }
   }
 
   async function claimDessert(who) {
@@ -172,6 +239,17 @@ export default function Perfil() {
                     <p className="profile-desserts">🍰 Postres ganados: {desserts}</p>
                   )}
 
+                  {points > 0 && (
+                    <button
+                      type="button"
+                      className="link-btn reset-points-btn"
+                      onClick={() => resetPoints(p)}
+                      disabled={resettingId === p}
+                    >
+                      {resettingId === p ? "Reiniciando..." : `Reiniciar puntos de ${p}`}
+                    </button>
+                  )}
+
                   {owesReady && (
                     <button
                       className="big-btn"
@@ -223,6 +301,50 @@ export default function Perfil() {
               );
             })}
           </div>
+        )}
+
+        {data && person && (
+          <section className="create-section settings-section">
+            <h2>⚙️ Configuración de puntos</h2>
+            <form onSubmit={saveSettings}>
+              <label>
+                Puntos por categoría agregada
+                <input
+                  type="number"
+                  min="1"
+                  value={ppcInput}
+                  onChange={(e) => setPpcInput(e.target.value)}
+                  required
+                />
+              </label>
+              <label>
+                Puntos para ganar un postre
+                <input
+                  type="number"
+                  min="1"
+                  value={thresholdInput}
+                  onChange={(e) => setThresholdInput(e.target.value)}
+                  required
+                />
+              </label>
+              {settingsError && <p className="error">{settingsError}</p>}
+              {settingsSuccess && <p className="password-success">{settingsSuccess}</p>}
+              <button type="submit" className="big-btn" disabled={settingsSaving}>
+                {settingsSaving ? "Guardando..." : "Guardar configuración"}
+              </button>
+            </form>
+
+            <div className="reset-all-row">
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => resetPoints(null)}
+                disabled={resettingId === "all"}
+              >
+                {resettingId === "all" ? "Reiniciando..." : "Reiniciar los puntos de los dos"}
+              </button>
+            </div>
+          </section>
         )}
       </main>
     </>

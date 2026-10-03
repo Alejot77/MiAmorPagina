@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
-import { PEOPLE, categoryInfo, FOOD_TYPES, POINTS_PER_CATEGORY } from "@/config";
+import { PEOPLE, categoryInfo, FOOD_TYPES } from "@/config";
+import { getSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -118,8 +119,9 @@ export async function POST(request) {
     );
   }
 
+  const { pointsPerCategory } = await getSettings();
   const id = Date.now().toString();
-  const pointsEarned = normalized.length * POINTS_PER_CATEGORY;
+  const pointsEarned = normalized.length * pointsPerCategory;
   const plan = {
     id,
     weekend,
@@ -166,9 +168,10 @@ export async function PATCH(request) {
 
   // Puntos: solo se premian categorias nuevas por encima del maximo ya
   // premiado para este plan, para no repetir puntos al solo editar texto.
+  const { pointsPerCategory } = await getSettings();
   const prevAwarded = existing.pointsAwardedFor || 0;
   const newCount = normalized.length;
-  const pointsEarned = Math.max(0, newCount - prevAwarded) * POINTS_PER_CATEGORY;
+  const pointsEarned = Math.max(0, newCount - prevAwarded) * pointsPerCategory;
 
   const updated = {
     ...existing,

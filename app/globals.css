@@ -665,6 +665,7 @@ input[type="date"],
 input[type="text"],
 input[type="url"],
 input[type="password"],
+input[type="number"],
 select {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -679,6 +680,7 @@ input[type="date"]:focus,
 input[type="text"]:focus,
 input[type="url"]:focus,
 input[type="password"]:focus,
+input[type="number"]:focus,
 select:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
@@ -832,6 +834,7 @@ select:focus {
   input[type="text"],
   input[type="url"],
   input[type="password"],
+  input[type="number"],
   select {
     background: #191228;
     color: var(--ink);
@@ -883,6 +886,7 @@ select:focus {
 :root[data-person="Alejandro"] input[type="text"],
 :root[data-person="Alejandro"] input[type="url"],
 :root[data-person="Alejandro"] input[type="password"],
+:root[data-person="Alejandro"] input[type="number"],
 :root[data-person="Alejandro"] select {
   background: #150a0b;
   color: var(--ink);
@@ -915,6 +919,7 @@ select:focus {
 :root[data-person="Stefanny"] input[type="text"],
 :root[data-person="Stefanny"] input[type="url"],
 :root[data-person="Stefanny"] input[type="password"],
+:root[data-person="Stefanny"] input[type="number"],
 :root[data-person="Stefanny"] select {
   background: white;
   color: var(--ink);
@@ -1592,4 +1597,24 @@ select:focus {
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px dashed var(--border);
+}
+
+.reset-points-btn {
+  display: block;
+  margin-top: 12px;
+  color: #c0392b;
+}
+
+.settings-section {
+  margin-top: 24px;
+}
+
+.reset-all-row {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+
+.reset-all-row .link-btn {
+  color: #c0392b;
 }
