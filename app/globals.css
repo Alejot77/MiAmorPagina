@@ -963,8 +963,11 @@ select:focus {
 
 /* Editor de categorias: toggle de 2 pasos y vista previa de tipos */
 
-.toggle-row {
+/* Mayor especificidad que ".create-section label" (que pone flex-direction:
+   column para la fecha), para que este switch se quede en fila. */
+.create-section label.toggle-row {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 12px;
   background: var(--card);
@@ -972,6 +975,9 @@ select:focus {
   border-radius: var(--radius-md);
   padding: 12px 14px;
   cursor: pointer;
+  font-size: 1rem;
+  color: inherit;
+  font-weight: 400;
 }
 
 .toggle-switch {
