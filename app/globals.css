@@ -1609,12 +1609,3 @@ select:focus {
   margin-top: 24px;
 }
 
-.reset-all-row {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px dashed var(--border);
-}
-
-.reset-all-row .link-btn {
-  color: #c0392b;
-}

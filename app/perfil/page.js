@@ -333,17 +333,6 @@ export default function Perfil() {
                 {settingsSaving ? "Guardando..." : "Guardar configuración"}
               </button>
             </form>
-
-            <div className="reset-all-row">
-              <button
-                type="button"
-                className="link-btn"
-                onClick={() => resetPoints(null)}
-                disabled={resettingId === "all"}
-              >
-                {resettingId === "all" ? "Reiniciando..." : "Reiniciar los puntos de los dos"}
-              </button>
-            </div>
           </section>
         )}
       </main>
