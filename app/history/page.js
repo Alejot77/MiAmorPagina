@@ -61,30 +61,34 @@ export default function History() {
   }
 
   return (
-    <main className="wrap">
+    <>
       <header className="topbar">
-        <Link href="/">← Volver</Link>
+        <div className="topbar-inner">
+          <Link href="/">← Volver</Link>
+        </div>
       </header>
-      <h1>Historial de planes 📖</h1>
-      {error && <p className="error">{error}</p>}
-      {!history ? (
-        <p>Cargando...</p>
-      ) : history.length === 0 ? (
-        <div className="empty-card">Todavía no hay planes registrados.</div>
-      ) : (
-        <ul className="history-list">
-          {history.map(({ plan, votes }) => (
-            <HistoryItem
-              key={plan.id}
-              plan={plan}
-              votes={votes}
-              onDelete={person ? () => deletePlan(plan.id) : null}
-              deleting={deletingId === plan.id}
-            />
-          ))}
-        </ul>
-      )}
-    </main>
+      <main className="wrap">
+        <h1>Historial de planes 📖</h1>
+        {error && <p className="error">{error}</p>}
+        {!history ? (
+          <p>Cargando...</p>
+        ) : history.length === 0 ? (
+          <div className="empty-card">Todavía no hay planes registrados.</div>
+        ) : (
+          <ul className="history-list">
+            {history.map(({ plan, votes }) => (
+              <HistoryItem
+                key={plan.id}
+                plan={plan}
+                votes={votes}
+                onDelete={person ? () => deletePlan(plan.id) : null}
+                deleting={deletingId === plan.id}
+              />
+            ))}
+          </ul>
+        )}
+      </main>
+    </>
   );
 }
 

@@ -44,10 +44,13 @@ export default function Ruleta() {
   }
 
   return (
-    <main className="wrap">
+    <>
       <header className="topbar">
-        <Link href="/">← Volver</Link>
+        <div className="topbar-inner">
+          <Link href="/">← Volver</Link>
+        </div>
       </header>
+      <main className="wrap">
       <h1>Ruleta de sitios 🎡</h1>
       <p className="subtitle">¿No saben qué comer? Dejen que decida la ruleta.</p>
 
@@ -96,6 +99,7 @@ export default function Ruleta() {
           </button>
         </section>
       )}
-    </main>
+      </main>
+    </>
   );
 }

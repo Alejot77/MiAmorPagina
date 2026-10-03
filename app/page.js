@@ -281,6 +281,10 @@ export default function Home() {
     data?.plan &&
     activeSteps.length > 0 &&
     activeSteps.every((s) => people.every((p) => Boolean((data.votes[s.id] || {})[p])));
+  const decidedCount = activeSteps.filter((s) =>
+    people.every((p) => Boolean((data?.votes?.[s.id] || {})[p]))
+  ).length;
+  const pendingCount = activeSteps.length - decidedCount;
 
   if (!person) {
     return (
@@ -310,24 +314,27 @@ export default function Home() {
   }
 
   return (
-    <main className="wrap">
+    <>
       <header className="topbar">
-        <span className="topbar-greeting">
-          <span className="avatar" style={{ background: colorFor(person, people) }}>
-            {person[0]}
+        <div className="topbar-inner">
+          <span className="topbar-greeting">
+            <span className="avatar" style={{ background: colorFor(person, people) }}>
+              {person[0]}
+            </span>
+            Hola, {person}
           </span>
-          Hola, {person}
-        </span>
-        <div className="topbar-links">
-          <Link href="/lugares">📍 Sitios</Link>
-          <Link href="/ruleta">🎡 Ruleta</Link>
-          <Link href="/flores">🌼 Flores</Link>
-          <Link href="/history">Historial</Link>
-          <button className="link-btn" onClick={changePerson}>
-            Cambiar
-          </button>
+          <div className="topbar-links">
+            <Link href="/lugares">📍 Sitios</Link>
+            <Link href="/ruleta">🎡 Ruleta</Link>
+            <Link href="/flores">🌼 Flores</Link>
+            <Link href="/history">Historial</Link>
+            <button className="link-btn" onClick={changePerson}>
+              Cambiar
+            </button>
+          </div>
         </div>
       </header>
+      <main className="wrap">
 
       {showFlowerModal && (
         <div className="flower-modal-overlay">
@@ -361,7 +368,18 @@ export default function Home() {
       ) : data?.plan ? (
         <>
           <div className="poll-header plan-header">
-            <p className="weekend-date">📅 Finde del {formatDate(data.plan.weekend)}</p>
+            <div>
+              <p className="weekend-date">📅 Finde del {formatDate(data.plan.weekend)}</p>
+              <div className="plan-stats">
+                <span className="stat-pill">{activeSteps.length} categoría{activeSteps.length === 1 ? "" : "s"}</span>
+                <span className="stat-pill done">{decidedCount} decidida{decidedCount === 1 ? "" : "s"}</span>
+                {pendingCount > 0 && (
+                  <span className="stat-pill pending">
+                    {pendingCount} pendiente{pendingCount === 1 ? "" : "s"}
+                  </span>
+                )}
+              </div>
+            </div>
             <div className="poll-actions">
               <button type="button" className="icon-btn" onClick={openEdit} aria-label="Editar plan">
                 ✏️
@@ -380,20 +398,22 @@ export default function Home() {
           {planComplete && (
             <Summary plan={data.plan} votes={data.votes} activeSteps={activeSteps} />
           )}
-          {data.plan.steps.map((step) =>
-            isStepSuperseded(step, data.plan.steps) ? (
-              <ResolvedBanner key={step.id} step={step} votes={data.votes[step.id] || {}} />
-            ) : (
-              <StepCard
-                key={step.id}
-                step={step}
-                votes={data.votes[step.id] || {}}
-                person={person}
-                people={people}
-                onVote={(optionId) => vote(step.id, optionId)}
-              />
-            )
-          )}
+          <div className="steps-grid">
+            {data.plan.steps.map((step) =>
+              isStepSuperseded(step, data.plan.steps) ? (
+                <ResolvedBanner key={step.id} step={step} votes={data.votes[step.id] || {}} />
+              ) : (
+                <StepCard
+                  key={step.id}
+                  step={step}
+                  votes={data.votes[step.id] || {}}
+                  person={person}
+                  people={people}
+                  onVote={(optionId) => vote(step.id, optionId)}
+                />
+              )
+            )}
+          </div>
         </>
       ) : (
         <div className="empty-card">
@@ -456,7 +476,8 @@ export default function Home() {
           </form>
         </section>
       )}
-    </main>
+      </main>
+    </>
   );
 }
 

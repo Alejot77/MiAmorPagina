@@ -104,10 +104,13 @@ export default function Lugares() {
   }
 
   return (
-    <main className="wrap">
+    <>
       <header className="topbar">
-        <Link href="/">← Volver</Link>
+        <div className="topbar-inner">
+          <Link href="/">← Volver</Link>
+        </div>
       </header>
+      <main className="wrap">
       <h1>Sitios de comida 📍</h1>
       <p className="subtitle">
         Guarda aquí los restaurantes o sitios que les gustan, por tipo de comida. Cuando los dos
@@ -221,6 +224,7 @@ export default function Lugares() {
           );
         })
       )}
-    </main>
+      </main>
+    </>
   );
 }
