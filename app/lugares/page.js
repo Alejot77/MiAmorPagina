@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FOOD_TYPES } from "@/config";
+import { useThemePerson } from "@/lib/useThemePerson";
 
 const STORAGE_KEY = "miamor_person";
 
 export default function Lugares() {
   const [person, setPerson] = useState(null);
+  useThemePerson(person);
   const [places, setPlaces] = useState(null);
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState(null);
@@ -130,7 +132,7 @@ export default function Lugares() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ej. Papas Quemadas"
+                placeholder="Ej. Papas"
                 required
               />
             </label>

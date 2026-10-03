@@ -3,8 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FOOD_TYPES } from "@/config";
+import { useThemePerson } from "@/lib/useThemePerson";
+
+const STORAGE_KEY = "miamor_person";
 
 export default function Ruleta() {
+  const [person, setPerson] = useState(null);
+  useThemePerson(person);
   const [places, setPlaces] = useState(null);
   const [error, setError] = useState("");
   const [category, setCategory] = useState("todas");
@@ -14,6 +19,12 @@ export default function Ruleta() {
   const intervalRef = useRef(null);
 
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setPerson(saved);
+    } catch (e) {
+      // se ignora
+    }
     fetch("/api/places")
       .then((r) => r.json())
       .then((d) => setPlaces(d.places))

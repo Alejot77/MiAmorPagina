@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PEOPLE, PERSON_COLORS, CATEGORIES, categoryInfo, FOOD_TYPES, foodTypeInfo } from "@/config";
+import { useThemePerson } from "@/lib/useThemePerson";
 
 const STORAGE_KEY = "miamor_person";
 const FLOWER_SEEN_KEY = "miamor_flowers_seen";
@@ -71,6 +72,7 @@ function isStepSuperseded(step, allSteps) {
 
 export default function Home() {
   const [person, setPerson] = useState(null);
+  useThemePerson(person);
   const [checkedStorage, setCheckedStorage] = useState(false);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

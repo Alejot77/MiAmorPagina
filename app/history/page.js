@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PEOPLE, PERSON_COLORS, categoryInfo } from "@/config";
+import { useThemePerson } from "@/lib/useThemePerson";
 
 const STORAGE_KEY = "miamor_person";
 
@@ -15,6 +16,7 @@ export default function History() {
   const [history, setHistory] = useState(null);
   const [error, setError] = useState("");
   const [person, setPerson] = useState(null);
+  useThemePerson(person);
   const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {

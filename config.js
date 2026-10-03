@@ -3,7 +3,7 @@
 export const PEOPLE = ["Stefanny", "Alejandro"];
 
 // Un color de acento por persona, en el mismo orden que PEOPLE.
-export const PERSON_COLORS = ["#ff7d9c", "#5a9e97"];
+export const PERSON_COLORS = ["#ff7d9c", "#d6474f"];
 
 // Categorias disponibles para armar un plan (comida, actividad, etc).
 // "key" se guarda en la base de datos; label/emoji/question son solo de UI.

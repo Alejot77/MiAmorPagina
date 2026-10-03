@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PEOPLE, PERSON_COLORS } from "@/config";
+import { useThemePerson } from "@/lib/useThemePerson";
 
 const STORAGE_KEY = "miamor_person";
 
@@ -13,6 +14,7 @@ function colorFor(name) {
 
 export default function Perfil() {
   const [person, setPerson] = useState(null);
+  useThemePerson(person);
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [claiming, setClaiming] = useState(null);

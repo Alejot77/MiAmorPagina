@@ -749,6 +749,72 @@ select:focus {
   --gold: #f4b942;
 }
 
+/* Tema por persona: cambia la paleta de toda la app segun quien esta
+   conectado en este dispositivo (ver useThemePerson). Van despues de los
+   bloques de modo oscuro para ganarles en caso de empate de especificidad. */
+
+:root[data-person="Alejandro"] {
+  --bg-top: #170a0c;
+  --bg-bottom: #0a0505;
+  --accent: #e2434b;
+  --accent-dark: #ff6b6b;
+  --accent-soft: #3a1418;
+  --ink: #f5e8e8;
+  --muted: #b89194;
+  --card: #1c1013;
+  --card-alt: #241317;
+  --border: #3d2024;
+  --gold: #f4b942;
+  --shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.65);
+  --shadow-sm: 0 4px 14px -6px rgba(0, 0, 0, 0.55);
+}
+
+:root[data-person="Alejandro"] body {
+  background: radial-gradient(1200px 600px at 20% -10%, #2a1014 0%, transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, #1c0a0d 0%, transparent 55%),
+    linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+}
+
+:root[data-person="Alejandro"] input[type="date"],
+:root[data-person="Alejandro"] input[type="text"],
+:root[data-person="Alejandro"] input[type="url"],
+:root[data-person="Alejandro"] select {
+  background: #150a0b;
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+:root[data-person="Stefanny"] {
+  --bg-top: #f8f2ff;
+  --bg-bottom: #e9dbfa;
+  --accent: #9d6fe0;
+  --accent-dark: #7b46c9;
+  --accent-soft: #ede1fb;
+  --ink: #3c2e4d;
+  --muted: #8d7c9e;
+  --card: #fdfaff;
+  --card-alt: #f4ecfc;
+  --border: #e3d3f5;
+  --gold: #eab54d;
+  --shadow: 0 10px 30px -12px rgba(60, 46, 77, 0.2);
+  --shadow-sm: 0 4px 14px -6px rgba(60, 46, 77, 0.16);
+}
+
+:root[data-person="Stefanny"] body {
+  background: radial-gradient(1200px 600px at 20% -10%, #f3e8ff 0%, transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, #ece0fb 0%, transparent 55%),
+    linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+}
+
+:root[data-person="Stefanny"] input[type="date"],
+:root[data-person="Stefanny"] input[type="text"],
+:root[data-person="Stefanny"] input[type="url"],
+:root[data-person="Stefanny"] select {
+  background: white;
+  color: var(--ink);
+  border-color: var(--border);
+}
+
 /* Modal de flores amarillas */
 
 .flower-modal-overlay {
