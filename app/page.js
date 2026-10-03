@@ -42,7 +42,7 @@ function blankStep(category = "comida") {
     category,
     question: categoryInfo(category).question,
     twoPhase: category === "comida",
-    selectedTypes: FOOD_TYPES.map((f) => f.key),
+    selectedTypes: [],
     options: [
       { name: "", link: "" },
       { name: "", link: "" },
@@ -65,10 +65,7 @@ function stepToDraft(step) {
     kind: step.kind,
     generatedStepId: step.generatedStepId,
     generatedFrom: step.generatedFrom,
-    selectedTypes:
-      step.kind === "comida-tipo"
-        ? step.options.map((o) => o.id)
-        : FOOD_TYPES.map((f) => f.key),
+    selectedTypes: step.kind === "comida-tipo" ? step.options.map((o) => o.id) : [],
     options: step.options.map((o) => ({ name: o.name, link: o.link || "" })),
   };
 }
@@ -653,7 +650,7 @@ function StepEditor({ step, onChange, onRemove }) {
       twoPhase: category === "comida",
       kind: undefined,
       generatedStepId: undefined,
-      selectedTypes: step.selectedTypes?.length ? step.selectedTypes : FOOD_TYPES.map((f) => f.key),
+      selectedTypes: step.selectedTypes || [],
     });
   }
 
