@@ -21,6 +21,14 @@ function colorFor(name, people) {
   return PERSON_COLORS[idx] || "#b98b6f";
 }
 
+// En la pantalla de inicio cada boton anticipa el tema de esa persona
+// (Alejandro: negro/rojo, Stefanny: blanco/lila).
+function personThemeClass(name) {
+  if (name === "Alejandro") return "theme-dark";
+  if (name === "Stefanny") return "theme-light";
+  return "";
+}
+
 function isFlowerDay(d = new Date()) {
   return d.getMonth() === 8 && d.getDate() === 21; // 21 de septiembre
 }
@@ -34,6 +42,7 @@ function blankStep(category = "comida") {
     category,
     question: categoryInfo(category).question,
     twoPhase: category === "comida",
+    selectedTypes: FOOD_TYPES.map((f) => f.key),
     options: [
       { name: "", link: "" },
       { name: "", link: "" },
@@ -56,6 +65,10 @@ function stepToDraft(step) {
     kind: step.kind,
     generatedStepId: step.generatedStepId,
     generatedFrom: step.generatedFrom,
+    selectedTypes:
+      step.kind === "comida-tipo"
+        ? step.options.map((o) => o.id)
+        : FOOD_TYPES.map((f) => f.key),
     options: step.options.map((o) => ({ name: o.name, link: o.link || "" })),
   };
 }
@@ -66,6 +79,7 @@ function draftToPayload(draft) {
     category: draft.category,
     question: draft.question,
     twoPhase: Boolean(draft.twoPhase),
+    selectedTypes: draft.selectedTypes || [],
     ...(draft.kind ? { kind: draft.kind } : {}),
     ...(draft.generatedStepId ? { generatedStepId: draft.generatedStepId } : {}),
     ...(draft.generatedFrom ? { generatedFrom: draft.generatedFrom } : {}),
@@ -393,13 +407,10 @@ export default function Home() {
                 {people.map((p) => (
                   <button
                     key={p}
-                    className="person-btn"
-                    style={{ background: colorFor(p, people) }}
+                    className={`person-btn ${personThemeClass(p)}`}
                     onClick={() => attemptChoose(p)}
                   >
-                    <span className="avatar" style={{ background: "rgba(255,255,255,0.35)" }}>
-                      {p[0]}
-                    </span>
+                    <span className="avatar">{p[0]}</span>
                     Soy {p}
                   </button>
                 ))}
@@ -436,8 +447,7 @@ export default function Home() {
               {authError && <p className="error">{authError}</p>}
               <button
                 type="submit"
-                className="big-btn"
-                style={{ background: colorFor(pendingPerson, people) }}
+                className={`big-btn ${personThemeClass(pendingPerson)}`}
                 disabled={authSaving}
               >
                 {authSaving
@@ -643,11 +653,20 @@ function StepEditor({ step, onChange, onRemove }) {
       twoPhase: category === "comida",
       kind: undefined,
       generatedStepId: undefined,
+      selectedTypes: step.selectedTypes?.length ? step.selectedTypes : FOOD_TYPES.map((f) => f.key),
     });
   }
 
   function setTwoPhase(twoPhase) {
     onChange({ ...step, twoPhase, kind: undefined, generatedStepId: undefined });
+  }
+
+  function toggleType(key) {
+    const current = step.selectedTypes || [];
+    const selectedTypes = current.includes(key)
+      ? current.filter((k) => k !== key)
+      : [...current, key];
+    onChange({ ...step, selectedTypes, kind: undefined, generatedStepId: undefined });
   }
 
   function setQuestion(question) {
@@ -722,15 +741,27 @@ function StepEditor({ step, onChange, onRemove }) {
       {isComida && step.twoPhase ? (
         <div className="food-type-preview-wrap">
           <p className="food-type-preview-label">
-            Se votará entre estos tipos (no se elige aquí, es informativo):
+            Elige qué tipos entran a la votación (mínimo 2):
           </p>
           <div className="food-type-preview">
-            {FOOD_TYPES.map((f) => (
-              <span key={f.key} className="food-type-chip">
-                {f.emoji} {f.label}
-              </span>
-            ))}
+            {FOOD_TYPES.map((f) => {
+              const selected = (step.selectedTypes || []).includes(f.key);
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  className={`food-type-chip ${selected ? "selected" : ""}`}
+                  onClick={() => toggleType(f.key)}
+                  aria-pressed={selected}
+                >
+                  {f.emoji} {f.label}
+                </button>
+              );
+            })}
           </div>
+          {(step.selectedTypes || []).length < 2 && (
+            <p className="food-type-preview-warning">Selecciona al menos 2 tipos.</p>
+          )}
         </div>
       ) : (
         <>

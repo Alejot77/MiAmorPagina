@@ -31,7 +31,14 @@ function normalizeSteps(rawSteps) {
     let kind;
 
     if (twoPhase) {
-      options = FOOD_TYPES.map((f) => ({ id: f.key, name: f.label }));
+      const selectedKeys = Array.isArray(s.selectedTypes)
+        ? s.selectedTypes.filter((key) => FOOD_TYPES.some((f) => f.key === key))
+        : [];
+      if (selectedKeys.length < 2) return null;
+      options = selectedKeys.map((key) => {
+        const f = FOOD_TYPES.find((ft) => ft.key === key);
+        return { id: f.key, name: f.label };
+      });
       kind = "comida-tipo";
     } else {
       const cleanOptions = Array.isArray(s.options)
