@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
+import { isPlanActive } from "@/lib/planWindow";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function GET() {
   const history = await Promise.all(
     ids.map(async (id) => {
       const plan = await kv.get(`plan:${id}`);
-      if (!plan) return null;
+      if (!plan || isPlanActive(plan)) return null;
       const votesEntries = await Promise.all(
         plan.steps.map(async (s) => [s.id, (await kv.hgetall(`votes:${id}:${s.id}`)) || {}])
       );

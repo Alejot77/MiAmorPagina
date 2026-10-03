@@ -8,7 +8,8 @@ App para planear los findes entre Stefanny y Alejandro: qué comen, qué hacen, 
 - Un plan tiene una o varias **categorías** (comida, actividad, bebida, juego, lugar, u otra personalizada), cada una con sus propias opciones para votar. Las opciones pueden llevar un link (menú del restaurante, Google Maps, etc).
 - Se puede crear un plan con solo una categoría (ej. "solo comida") o con varias de una vez (un día completo). También se puede **agregar una categoría nueva a un plan que ya existe** — por ejemplo, decidir primero la comida y después agregar "qué hacemos".
 - Cada persona puede votar (y cambiar su voto) por una sola opción en cada categoría. El resultado (quién votó qué y quién va ganando) queda oculto hasta que **ambos** hayan votado esa categoría; mientras tanto solo se ve si ya votaste o si falta el otro voto.
-- El plan activo se puede editar (✏️) o eliminar (🗑️) en cualquier momento. Al crear un plan nuevo, el anterior queda guardado automáticamente en "Historial", donde también se puede eliminar.
+- Pueden existir **varios planes activos a la vez** — por ejemplo uno para el sábado y otro para el domingo (o lunes, si es festivo). Crear uno nuevo no borra ni reemplaza a los demás; cada uno se edita (✏️) y elimina (🗑️) por separado.
+- Cada plan pasa solo a "Historial" el **martes siguiente a su fecha** (sin importar cuántos planes nuevos se hayan creado mientras tanto). Hasta entonces se queda visible en la página principal.
 
 ## Desplegar en Vercel
 

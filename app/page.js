@@ -107,9 +107,10 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showFlowerModal, setShowFlowerModal] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const [formMode, setFormMode] = useState(null); // null | "create" | "edit" | "addCategory"
+  const [editingPlan, setEditingPlan] = useState(null); // plan que esta editando/ampliando (null si es nuevo)
   const [weekendInput, setWeekendInput] = useState(nextSaturday());
   const [draftSteps, setDraftSteps] = useState([]);
   const [hiddenSteps, setHiddenSteps] = useState([]);
@@ -139,11 +140,11 @@ export default function Home() {
       // localStorage no disponible, se ignora
     }
     setCheckedStorage(true);
-    fetchPlan();
+    fetchPlans();
   }, []);
 
   useEffect(() => {
-    if (data && !data.plan && !formMode) openCreate();
+    if (data && data.plans && data.plans.length === 0 && !formMode) openCreate();
   }, [data]);
 
   function maybeShowFlowerModal(name) {
@@ -167,14 +168,14 @@ export default function Home() {
     setShowFlowerModal(false);
   }
 
-  async function fetchPlan() {
+  async function fetchPlans() {
     setLoading(true);
     try {
       const res = await fetch("/api/plan");
       const json = await res.json();
       setData(json);
     } catch (e) {
-      setError("No se pudo cargar el plan.");
+      setError("No se pudo cargar los planes.");
     } finally {
       setLoading(false);
     }
@@ -267,20 +268,20 @@ export default function Home() {
     setPerson(null);
   }
 
-  async function vote(stepId, optionId) {
+  async function vote(planId, stepId, optionId) {
     setError("");
     try {
       const res = await fetch("/api/vote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId: data.plan.id, stepId, person, optionId }),
+        body: JSON.stringify({ planId, stepId, person, optionId }),
       });
       const json = await res.json();
       if (!res.ok) {
         setError(json.error || "Error al votar");
         return;
       }
-      setData((d) => ({ ...d, plan: json.plan, votes: json.votes }));
+      setData((d) => ({ ...d, plans: json.plans, votes: json.votes }));
     } catch (e) {
       setError("Error al votar");
     }
@@ -288,33 +289,35 @@ export default function Home() {
 
   function openCreate() {
     setError("");
+    setEditingPlan(null);
     setWeekendInput(nextSaturday());
     setHiddenSteps([]);
     setDraftSteps([blankStep("comida")]);
     setFormMode("create");
   }
 
-  function openEdit() {
-    if (!data?.plan) return;
+  function openEdit(plan) {
     setError("");
-    setWeekendInput(data.plan.weekend);
+    setEditingPlan(plan);
+    setWeekendInput(plan.weekend);
     setHiddenSteps([]);
-    setDraftSteps(data.plan.steps.map(stepToDraft));
+    setDraftSteps(plan.steps.map(stepToDraft));
     setFormMode("edit");
   }
 
-  function openAddCategory() {
-    if (!data?.plan) return;
+  function openAddCategory(plan) {
     setError("");
-    setWeekendInput(data.plan.weekend);
-    setHiddenSteps(data.plan.steps.map(stepToDraft));
-    const used = data.plan.steps.map((s) => s.category);
+    setEditingPlan(plan);
+    setWeekendInput(plan.weekend);
+    setHiddenSteps(plan.steps.map(stepToDraft));
+    const used = plan.steps.map((s) => s.category);
     setDraftSteps([blankStep(nextCategory(used))]);
     setFormMode("addCategory");
   }
 
   function closeForm() {
     setFormMode(null);
+    setEditingPlan(null);
     setDraftSteps([]);
     setHiddenSteps([]);
   }
@@ -336,7 +339,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           isEdit
-            ? { planId: data.plan.id, weekend: weekendInput, person, steps }
+            ? { planId: editingPlan.id, weekend: weekendInput, person, steps }
             : { weekend: weekendInput, person, steps }
         ),
       });
@@ -345,7 +348,7 @@ export default function Home() {
         setError(json.error || "Error al guardar el plan");
         return;
       }
-      setData((d) => ({ plan: json.plan, votes: json.votes, people: d?.people }));
+      setData((d) => ({ plans: json.plans, votes: json.votes, people: d?.people }));
       closeForm();
       if (json.pointsEarned > 0) {
         setPointsToast(json.pointsEarned);
@@ -357,30 +360,29 @@ export default function Home() {
     }
   }
 
-  async function deletePlan() {
-    if (!data?.plan) return;
+  async function deletePlan(plan) {
     if (!window.confirm("¿Eliminar este plan y todos sus votos? No se puede deshacer.")) {
       return;
     }
     setError("");
-    setDeleting(true);
+    setDeletingId(plan.id);
     try {
       const res = await fetch("/api/plan", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId: data.plan.id, person }),
+        body: JSON.stringify({ planId: plan.id, person }),
       });
       const json = await res.json();
       if (!res.ok) {
         setError(json.error || "Error al eliminar el plan");
         return;
       }
-      closeForm();
-      await fetchPlan();
+      if (editingPlan?.id === plan.id) closeForm();
+      setData((d) => ({ plans: json.plans, votes: json.votes, people: d?.people }));
     } catch (e) {
       setError("Error al eliminar el plan");
     } finally {
-      setDeleting(false);
+      setDeletingId(null);
     }
   }
 
@@ -389,17 +391,7 @@ export default function Home() {
   }
 
   const people = data?.people || PEOPLE;
-  const activeSteps = data?.plan
-    ? data.plan.steps.filter((s) => !isStepSuperseded(s, data.plan.steps))
-    : [];
-  const planComplete =
-    data?.plan &&
-    activeSteps.length > 0 &&
-    activeSteps.every((s) => people.every((p) => Boolean((data.votes[s.id] || {})[p])));
-  const decidedCount = activeSteps.filter((s) =>
-    people.every((p) => Boolean((data?.votes?.[s.id] || {})[p]))
-  ).length;
-  const pendingCount = activeSteps.length - decidedCount;
+  const plans = data?.plans || [];
 
   if (!person) {
     return (
@@ -510,7 +502,6 @@ export default function Home() {
         </div>
       </header>
       <main className="wrap">
-
       {showFlowerModal && (
         <div className="flower-modal-overlay">
           <div className="flower-modal-card">
@@ -546,70 +537,33 @@ export default function Home() {
 
       {loading ? (
         <p>Cargando...</p>
-      ) : data?.plan ? (
-        <>
-          <div className="poll-header plan-header">
-            <div>
-              <p className="weekend-date">📅 Finde del {formatDate(data.plan.weekend)}</p>
-              <div className="plan-stats">
-                <span className="stat-pill">{activeSteps.length} categoría{activeSteps.length === 1 ? "" : "s"}</span>
-                <span className="stat-pill done">{decidedCount} decidida{decidedCount === 1 ? "" : "s"}</span>
-                {pendingCount > 0 && (
-                  <span className="stat-pill pending">
-                    {pendingCount} pendiente{pendingCount === 1 ? "" : "s"}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="poll-actions">
-              <button type="button" className="icon-btn" onClick={openEdit} aria-label="Editar plan">
-                ✏️
-              </button>
-              <button
-                type="button"
-                className="icon-btn"
-                onClick={deletePlan}
-                disabled={deleting}
-                aria-label="Eliminar plan"
-              >
-                🗑️
-              </button>
-            </div>
-          </div>
-          {planComplete && (
-            <Summary plan={data.plan} votes={data.votes} activeSteps={activeSteps} />
-          )}
-          <div className="steps-grid">
-            {data.plan.steps.map((step) =>
-              isStepSuperseded(step, data.plan.steps) ? (
-                <ResolvedBanner key={step.id} step={step} votes={data.votes[step.id] || {}} />
-              ) : (
-                <StepCard
-                  key={step.id}
-                  step={step}
-                  votes={data.votes[step.id] || {}}
-                  person={person}
-                  people={people}
-                  onVote={(optionId) => vote(step.id, optionId)}
-                />
-              )
-            )}
-          </div>
-        </>
+      ) : plans.length > 0 ? (
+        plans.map((plan) => (
+          <PlanSection
+            key={plan.id}
+            plan={plan}
+            votes={data.votes[plan.id] || {}}
+            person={person}
+            people={people}
+            onVote={(stepId, optionId) => vote(plan.id, stepId, optionId)}
+            onEdit={() => openEdit(plan)}
+            onAddCategory={() => openAddCategory(plan)}
+            onDelete={() => deletePlan(plan)}
+            deleting={deletingId === plan.id}
+            hideAddButton={Boolean(formMode)}
+          />
+        ))
       ) : (
         <div className="empty-card">
-          Todavía no hay plan para este finde.
+          Todavía no hay planes para este finde.
           <br />
           ¡Crea uno abajo! 👇
         </div>
       )}
 
       {!formMode && !loading && (
-        <button
-          className="create-toggle"
-          onClick={data?.plan ? openAddCategory : openCreate}
-        >
-          {data?.plan ? "+ Agregar otra categoría a este plan" : "+ Crear plan"}
+        <button className="create-toggle" onClick={openCreate}>
+          {plans.length > 0 ? "+ Planear otro día (ej. domingo o festivo)" : "+ Crear plan"}
         </button>
       )}
 
@@ -617,13 +571,13 @@ export default function Home() {
         <section className="create-section">
           <h2>
             {formMode === "create" && "Crear plan"}
-            {formMode === "edit" && "Editar plan"}
-            {formMode === "addCategory" && "Agregar categoría"}
+            {formMode === "edit" && `Editar plan del ${formatDate(editingPlan.weekend)}`}
+            {formMode === "addCategory" && `Agregar categoría al plan del ${formatDate(editingPlan.weekend)}`}
           </h2>
           <form onSubmit={submitSteps}>
             {formMode !== "addCategory" && (
               <label>
-                Fecha del finde
+                Fecha
                 <input
                   type="date"
                   value={weekendInput}
@@ -662,6 +616,90 @@ export default function Home() {
       )}
       </main>
     </>
+  );
+}
+
+function PlanSection({
+  plan,
+  votes,
+  person,
+  people,
+  onVote,
+  onEdit,
+  onAddCategory,
+  onDelete,
+  deleting,
+  hideAddButton,
+}) {
+  const activeSteps = plan.steps.filter((s) => !isStepSuperseded(s, plan.steps));
+  const planComplete =
+    activeSteps.length > 0 &&
+    activeSteps.every((s) => people.every((p) => Boolean((votes[s.id] || {})[p])));
+  const decidedCount = activeSteps.filter((s) =>
+    people.every((p) => Boolean((votes[s.id] || {})[p]))
+  ).length;
+  const pendingCount = activeSteps.length - decidedCount;
+
+  return (
+    <section className="plan-section">
+      <div className="poll-header plan-header">
+        <div>
+          <p className="weekend-date">📅 Finde del {formatDate(plan.weekend)}</p>
+          <div className="plan-stats">
+            <span className="stat-pill">
+              {activeSteps.length} categoría{activeSteps.length === 1 ? "" : "s"}
+            </span>
+            <span className="stat-pill done">
+              {decidedCount} decidida{decidedCount === 1 ? "" : "s"}
+            </span>
+            {pendingCount > 0 && (
+              <span className="stat-pill pending">
+                {pendingCount} pendiente{pendingCount === 1 ? "" : "s"}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="poll-actions">
+          <button type="button" className="icon-btn" onClick={onEdit} aria-label="Editar plan">
+            ✏️
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={onDelete}
+            disabled={deleting}
+            aria-label="Eliminar plan"
+          >
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      {planComplete && <Summary votes={votes} activeSteps={activeSteps} />}
+
+      <div className="steps-grid">
+        {plan.steps.map((step) =>
+          isStepSuperseded(step, plan.steps) ? (
+            <ResolvedBanner key={step.id} step={step} votes={votes[step.id] || {}} />
+          ) : (
+            <StepCard
+              key={step.id}
+              step={step}
+              votes={votes[step.id] || {}}
+              person={person}
+              people={people}
+              onVote={(optionId) => onVote(step.id, optionId)}
+            />
+          )
+        )}
+      </div>
+
+      {!hideAddButton && (
+        <button type="button" className="create-toggle plan-add-category" onClick={onAddCategory}>
+          + Agregar otra categoría a este plan
+        </button>
+      )}
+    </section>
   );
 }
 
@@ -940,10 +978,10 @@ function ResolvedBanner({ step, votes }) {
   );
 }
 
-function Summary({ plan, votes, activeSteps }) {
+function Summary({ votes, activeSteps }) {
   return (
     <section className="poll summary-card">
-      <p className="step-question">🎉 ¡Su plan está listo!</p>
+      <p className="step-question">🎉 ¡Este plan está listo!</p>
       <ul className="summary-list">
         {activeSteps.map((step) => {
           const stepVotes = votes[step.id] || {};

@@ -2,16 +2,9 @@ import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
 import { PEOPLE, foodTypeInfo } from "@/config";
 import { sendPushToPerson, otherPerson } from "@/lib/push";
+import { isPlanActive, loadActivePlans } from "@/lib/planWindow";
 
 export const dynamic = "force-dynamic";
-
-async function loadAllVotes(planId, plan) {
-  if (!plan) return {};
-  const entries = await Promise.all(
-    plan.steps.map(async (s) => [s.id, (await kv.hgetall(`votes:${planId}:${s.id}`)) || {}])
-  );
-  return Object.fromEntries(entries);
-}
 
 async function loadPlaces() {
   const ids = await kv.lrange("places", 0, -1);
@@ -85,13 +78,12 @@ export async function POST(request) {
     return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
   }
 
-  const ids = await kv.lrange("plans", 0, 0);
-  if (!ids || ids.length === 0 || String(ids[0]) !== String(planId)) {
+  const plan = await kv.get(`plan:${planId}`);
+  if (!plan || !isPlanActive(plan)) {
     return NextResponse.json({ error: "Este plan ya no está activo" }, { status: 400 });
   }
 
-  const plan = await kv.get(`plan:${planId}`);
-  const step = plan?.steps.find((s) => s.id === stepId);
+  const step = plan.steps.find((s) => s.id === stepId);
   if (!step || !step.options.some((o) => o.id === optionId)) {
     return NextResponse.json({ error: "Opción inválida" }, { status: 400 });
   }
@@ -100,8 +92,7 @@ export async function POST(request) {
   await kv.hset(`votes:${planId}:${stepId}`, { [person]: optionId });
   const stepVotes = await kv.hgetall(`votes:${planId}:${stepId}`);
 
-  const updatedPlan = await maybeGenerateLugarStep(planId, plan, step, stepVotes);
-  const votes = await loadAllVotes(planId, updatedPlan);
+  await maybeGenerateLugarStep(planId, plan, step, stepVotes);
 
   const target = otherPerson(person);
   if (target) {
@@ -112,5 +103,6 @@ export async function POST(request) {
     });
   }
 
-  return NextResponse.json({ plan: updatedPlan, votes });
+  const { plans, votes } = await loadActivePlans();
+  return NextResponse.json({ plans, votes });
 }

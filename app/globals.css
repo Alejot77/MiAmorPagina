@@ -388,6 +388,22 @@ p {
   box-shadow: var(--shadow);
 }
 
+.plan-section {
+  background: var(--card-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  margin-bottom: 20px;
+}
+
+.plan-section .steps-grid {
+  margin-bottom: 14px;
+}
+
+.plan-add-category {
+  margin-top: 0;
+}
+
 .plan-header {
   margin-bottom: 20px;
   align-items: flex-start;

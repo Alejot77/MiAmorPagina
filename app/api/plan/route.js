@@ -3,6 +3,7 @@ import { kv } from "@/lib/kv";
 import { PEOPLE, categoryInfo, FOOD_TYPES } from "@/config";
 import { getSettings } from "@/lib/settings";
 import { sendPushToPerson, otherPerson } from "@/lib/push";
+import { loadActivePlans } from "@/lib/planWindow";
 
 export const dynamic = "force-dynamic";
 
@@ -80,25 +81,9 @@ function normalizeSteps(rawSteps) {
   return steps;
 }
 
-async function loadVotes(planId, plan) {
-  if (!plan) return {};
-  const entries = await Promise.all(
-    plan.steps.map(async (s) => [s.id, (await kv.hgetall(`votes:${planId}:${s.id}`)) || {}])
-  );
-  return Object.fromEntries(entries);
-}
-
 export async function GET() {
-  const ids = await kv.lrange("plans", 0, 0);
-  if (!ids || ids.length === 0) {
-    return NextResponse.json({ plan: null, votes: {}, people: PEOPLE });
-  }
-
-  const id = ids[0];
-  const plan = await kv.get(`plan:${id}`);
-  const votes = await loadVotes(id, plan);
-
-  return NextResponse.json({ plan, votes, people: PEOPLE });
+  const { plans, votes } = await loadActivePlans();
+  return NextResponse.json({ plans, votes, people: PEOPLE });
 }
 
 export async function POST(request) {
@@ -145,11 +130,8 @@ export async function POST(request) {
     });
   }
 
-  return NextResponse.json({
-    plan,
-    votes: Object.fromEntries(normalized.map((s) => [s.id, {}])),
-    pointsEarned,
-  });
+  const { plans, votes } = await loadActivePlans();
+  return NextResponse.json({ plans, votes, pointsEarned });
 }
 
 export async function PATCH(request) {
@@ -216,8 +198,8 @@ export async function PATCH(request) {
     }
   }
 
-  const votes = await loadVotes(planId, updated);
-  return NextResponse.json({ plan: updated, votes, pointsEarned });
+  const { plans, votes } = await loadActivePlans();
+  return NextResponse.json({ plans, votes, pointsEarned });
 }
 
 export async function DELETE(request) {
@@ -241,5 +223,6 @@ export async function DELETE(request) {
     }
   }
 
-  return NextResponse.json({ ok: true });
+  const { plans, votes } = await loadActivePlans();
+  return NextResponse.json({ plans, votes });
 }
