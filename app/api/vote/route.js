@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
 import { PEOPLE, foodTypeInfo } from "@/config";
+import { sendPushToPerson, otherPerson } from "@/lib/push";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,15 @@ export async function POST(request) {
 
   const updatedPlan = await maybeGenerateLugarStep(planId, plan, step, stepVotes);
   const votes = await loadAllVotes(planId, updatedPlan);
+
+  const target = otherPerson(person);
+  if (target) {
+    await sendPushToPerson(target, {
+      title: "✅ Nuevo voto",
+      body: `${person} votó en "${step.question}"`,
+      url: "/",
+    });
+  }
 
   return NextResponse.json({ plan: updatedPlan, votes });
 }

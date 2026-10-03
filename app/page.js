@@ -11,6 +11,7 @@ import {
   foodTypeInfo,
 } from "@/config";
 import { useThemePerson } from "@/lib/useThemePerson";
+import { usePushNotifications } from "@/lib/usePushNotifications";
 
 const STORAGE_KEY = "miamor_person";
 const FLOWER_SEEN_KEY = "miamor_flowers_seen";
@@ -29,12 +30,21 @@ function personThemeClass(name) {
   return "";
 }
 
+// yyyy-mm-dd en hora LOCAL, no UTC (toISOString() convierte a UTC y puede
+// saltar al dia siguiente/anterior segun la hora y el huso horario).
+function formatLocalDate(d) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function isFlowerDay(d = new Date()) {
   return d.getMonth() === 8 && d.getDate() === 21; // 21 de septiembre
 }
 
 function todayKey(d = new Date()) {
-  return d.toISOString().slice(0, 10);
+  return formatLocalDate(d);
 }
 
 function blankStep(category = "comida") {
@@ -91,6 +101,7 @@ function isStepSuperseded(step, allSteps) {
 export default function Home() {
   const [person, setPerson] = useState(null);
   useThemePerson(person);
+  const push = usePushNotifications(person);
   const [checkedStorage, setCheckedStorage] = useState(false);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -478,6 +489,20 @@ export default function Home() {
             <Link href="/ruleta">🎡 Ruleta</Link>
             <Link href="/flores">🌼 Flores</Link>
             <Link href="/history">Historial</Link>
+            {push.supported && (
+              <button
+                className="link-btn"
+                onClick={push.subscribed ? push.unsubscribe : push.subscribe}
+                disabled={push.loading}
+                title={
+                  push.subscribed
+                    ? "Ya recibes notificaciones en este dispositivo"
+                    : "Avisarte cuando creen un plan o voten"
+                }
+              >
+                {push.subscribed ? "🔔 Activadas" : "🔔 Activar avisos"}
+              </button>
+            )}
             <button className="link-btn" onClick={changePerson}>
               Cambiar
             </button>
@@ -962,7 +987,7 @@ function nextSaturday() {
   const day = d.getDay();
   const diff = (6 - day + 7) % 7 || 7;
   d.setDate(d.getDate() + diff);
-  return d.toISOString().slice(0, 10);
+  return formatLocalDate(d);
 }
 
 function formatDate(str) {

@@ -48,3 +48,33 @@ intentos ni recuperación de clave olvidada) — si alguna vez olvidan una
 clave, se borra borrando la fila `auth:<nombre>` en la base de datos
 desde el dashboard de Upstash, y la próxima vez que entren se las vuelve
 a pedir crear.
+
+## Notificaciones
+
+La app puede avisar por notificación push del celular/navegador cuando el
+otro crea un plan o vota (botón **🔔 Activar avisos** en el menú de
+arriba). Para que funcione hace falta configurar 3 variables de entorno
+en Vercel (**Settings → Environment Variables**):
+
+1. Genera un par de claves VAPID (una sola vez, se reutilizan siempre):
+   ```bash
+   node -e "console.log(require('web-push').generateVAPIDKeys())"
+   ```
+2. En Vercel agrega:
+   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` → el `publicKey` que te dio el comando.
+   - `VAPID_PRIVATE_KEY` → el `privateKey` (este sí es secreto, no lo compartas).
+   - `VAPID_SUBJECT` → `mailto:tu-correo@ejemplo.com` (un contacto, lo exige el estándar).
+3. Redeploy. En Vercel, estas variables solo se "hornean" en el código la
+   próxima vez que se construye el proyecto, así que un simple redeploy
+   basta (no hace falta tocar código).
+
+Si no configuras estas variables, la app funciona igual pero el botón de
+notificaciones no aparece (se oculta solo si no hay clave pública).
+
+Notas:
+- Hay que darle permiso de notificaciones al navegador cuando lo pida.
+- En iPhone, Safari solo manda notificaciones push si antes "Agregan a
+  pantalla de inicio" la página (Compartir → Agregar a pantalla de
+  inicio) y la abren desde ese ícono.
+- Las notificaciones solo le llegan a **la otra persona**, no a quien
+  hizo la acción.

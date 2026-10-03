@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
 import { PEOPLE, categoryInfo, FOOD_TYPES } from "@/config";
 import { getSettings } from "@/lib/settings";
+import { sendPushToPerson, otherPerson } from "@/lib/push";
 
 export const dynamic = "force-dynamic";
 
@@ -134,6 +135,15 @@ export async function POST(request) {
   await kv.set(`plan:${id}`, plan);
   await kv.lpush("plans", id);
   await kv.incrby(`points:${person}`, pointsEarned);
+
+  const target = otherPerson(person);
+  if (target) {
+    await sendPushToPerson(target, {
+      title: "🎉 Nuevo plan",
+      body: `${person} creó un plan para este finde. ¡Ve a votar!`,
+      url: "/",
+    });
+  }
 
   return NextResponse.json({
     plan,
