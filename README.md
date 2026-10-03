@@ -30,3 +30,12 @@ npm run dev
 ## Cambiar los nombres
 
 Edita [config.js](config.js) y cambia los valores de `PEOPLE`.
+
+## Clave por persona
+
+En [config.js](config.js), `PERSON_PASSWORDS` tiene una clave opcional por
+persona (mismo orden que `PEOPLE`). Déjala en `""` para que esa persona
+entre sin clave, o ponle un valor para que la pida antes de entrar.
+Ojo: es una barrera liviana (el valor va en el código del navegador), no
+seguridad real — alcanza para que el otro no entre por error o curiosidad,
+no para proteger datos sensibles.

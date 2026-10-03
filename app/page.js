@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PEOPLE, PERSON_COLORS, CATEGORIES, categoryInfo, FOOD_TYPES, foodTypeInfo } from "@/config";
+import {
+  PEOPLE,
+  PERSON_COLORS,
+  PERSON_PASSWORDS,
+  CATEGORIES,
+  categoryInfo,
+  FOOD_TYPES,
+  foodTypeInfo,
+} from "@/config";
 import { useThemePerson } from "@/lib/useThemePerson";
 
 const STORAGE_KEY = "miamor_person";
@@ -86,6 +94,9 @@ export default function Home() {
   const [hiddenSteps, setHiddenSteps] = useState([]);
   const [saving, setSaving] = useState(false);
   const [pointsToast, setPointsToast] = useState(null);
+  const [pendingPerson, setPendingPerson] = useState(null);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   useEffect(() => {
     if (!pointsToast) return;
@@ -153,6 +164,36 @@ export default function Home() {
     }
     setPerson(name);
     maybeShowFlowerModal(name);
+  }
+
+  function attemptChoose(name) {
+    const idx = PEOPLE.indexOf(name);
+    const pwd = PERSON_PASSWORDS[idx];
+    if (!pwd) {
+      choosePerson(name);
+      return;
+    }
+    setPendingPerson(name);
+    setPasswordInput("");
+    setPasswordError("");
+  }
+
+  function submitPassword(e) {
+    e.preventDefault();
+    const idx = PEOPLE.indexOf(pendingPerson);
+    const pwd = PERSON_PASSWORDS[idx];
+    if (passwordInput === pwd) {
+      choosePerson(pendingPerson);
+      setPendingPerson(null);
+    } else {
+      setPasswordError("Clave incorrecta");
+    }
+  }
+
+  function cancelPassword() {
+    setPendingPerson(null);
+    setPasswordInput("");
+    setPasswordError("");
   }
 
   function changePerson() {
@@ -302,24 +343,51 @@ export default function Home() {
     return (
       <main className="wrap center">
         <div className="landing-card">
-          <div className="landing-emoji">💜</div>
+          <div className="landing-emoji">💚</div>
           <h1>Nuestros planes</h1>
-          <p className="subtitle">¿Quién eres?</p>
-          <div className="people-buttons">
-            {people.map((p) => (
+
+          {!pendingPerson ? (
+            <>
+              <p className="subtitle">¿Quién eres?</p>
+              <div className="people-buttons">
+                {people.map((p) => (
+                  <button
+                    key={p}
+                    className="person-btn"
+                    style={{ background: colorFor(p, people) }}
+                    onClick={() => attemptChoose(p)}
+                  >
+                    <span className="avatar" style={{ background: "rgba(255,255,255,0.35)" }}>
+                      {p[0]}
+                    </span>
+                    Soy {p}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <form className="password-form" onSubmit={submitPassword}>
+              <p className="subtitle">Clave de {pendingPerson}</p>
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="••••"
+                autoFocus
+              />
+              {passwordError && <p className="error">{passwordError}</p>}
               <button
-                key={p}
-                className="person-btn"
-                style={{ background: colorFor(p, people) }}
-                onClick={() => choosePerson(p)}
+                type="submit"
+                className="big-btn"
+                style={{ background: colorFor(pendingPerson, people) }}
               >
-                <span className="avatar" style={{ background: "rgba(255,255,255,0.35)" }}>
-                  {p[0]}
-                </span>
-                Soy {p}
+                Entrar
               </button>
-            ))}
-          </div>
+              <button type="button" className="link-btn" onClick={cancelPassword}>
+                ← Volver
+              </button>
+            </form>
+          )}
         </div>
       </main>
     );

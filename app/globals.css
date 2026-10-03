@@ -82,16 +82,27 @@ h2,
   justify-content: center;
   text-align: center;
   padding: 24px 20px;
+  background: radial-gradient(900px 600px at 50% -10%, #15423b 0%, transparent 60%),
+    linear-gradient(180deg, #0b1f1b, #071411);
 }
 
 .landing-card {
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: #102420;
+  border: 1px solid #1f453d;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
+  box-shadow: 0 20px 50px -18px rgba(0, 0, 0, 0.6);
   padding: 36px 28px;
   width: 100%;
   max-width: 340px;
+  color: #f3ead0;
+}
+
+.landing-card h1 {
+  color: #f6efd9;
+}
+
+.landing-card .subtitle {
+  color: #a9c9c0;
 }
 
 .landing-emoji {
@@ -211,6 +222,38 @@ p {
   gap: 12px;
   width: 100%;
   margin-top: 22px;
+}
+
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 18px;
+}
+
+.password-form input[type="password"] {
+  background: #0b1a17;
+  border: 1px solid #244d44;
+  color: #f3ead0;
+  border-radius: var(--radius-sm);
+  padding: 12px 13px;
+  font-size: 1.1rem;
+  text-align: center;
+  letter-spacing: 0.3em;
+}
+
+.password-form input[type="password"]:focus {
+  outline: 2px solid #3fae8f;
+  outline-offset: 1px;
+}
+
+.password-form .error {
+  margin: 0;
+}
+
+.password-form .link-btn {
+  color: #a9c9c0;
 }
 
 .person-btn {

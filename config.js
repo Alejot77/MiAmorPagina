@@ -5,6 +5,12 @@ export const PEOPLE = ["Stefanny", "Alejandro"];
 // Un color de acento por persona, en el mismo orden que PEOPLE.
 export const PERSON_COLORS = ["#ff7d9c", "#d6474f"];
 
+// Clave opcional por persona, en el mismo orden que PEOPLE. Si la dejas
+// vacia ("") esa persona entra sin pedir clave. Ojo: esto es solo una
+// barrera liviana (el valor viaja en el codigo del navegador), no es
+// seguridad real, pero alcanza para que no entren por error/curiosidad.
+export const PERSON_PASSWORDS = ["", "1234"];
+
 // Categorias disponibles para armar un plan (comida, actividad, etc).
 // "key" se guarda en la base de datos; label/emoji/question son solo de UI.
 export const CATEGORIES = [
