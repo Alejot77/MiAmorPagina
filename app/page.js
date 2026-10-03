@@ -83,6 +83,13 @@ export default function Home() {
   const [draftSteps, setDraftSteps] = useState([]);
   const [hiddenSteps, setHiddenSteps] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [pointsToast, setPointsToast] = useState(null);
+
+  useEffect(() => {
+    if (!pointsToast) return;
+    const id = setTimeout(() => setPointsToast(null), 3500);
+    return () => clearTimeout(id);
+  }, [pointsToast]);
 
   useEffect(() => {
     try {
@@ -235,6 +242,9 @@ export default function Home() {
       }
       setData((d) => ({ plan: json.plan, votes: json.votes, people: d?.people }));
       closeForm();
+      if (json.pointsEarned > 0) {
+        setPointsToast(json.pointsEarned);
+      }
     } catch (e) {
       setError("Error al guardar el plan");
     } finally {
@@ -324,6 +334,7 @@ export default function Home() {
             Hola, {person}
           </span>
           <div className="topbar-links">
+            <Link href="/perfil">🏆 Perfil</Link>
             <Link href="/lugares">📍 Sitios</Link>
             <Link href="/ruleta">🎡 Ruleta</Link>
             <Link href="/flores">🌼 Flores</Link>
@@ -360,6 +371,12 @@ export default function Home() {
       )}
 
       <h1>¿Qué planeamos este finde? 💜</h1>
+
+      {pointsToast && (
+        <p className="points-toast">
+          🏆 +{pointsToast} puntos — <Link href="/perfil">ver perfil</Link>
+        </p>
+      )}
 
       {error && <p className="error">{error}</p>}
 
@@ -547,17 +564,25 @@ function StepEditor({ step, onChange, onRemove }) {
       />
 
       {isComida && (
-        <label className="checkbox-row">
-          <input
-            type="checkbox"
-            checked={step.twoPhase}
-            onChange={(e) => setTwoPhase(e.target.checked)}
-          />
-          Votar primero el tipo de comida y luego el sitio (según tu catálogo de{" "}
-          <Link href="/lugares" target="_blank">
-            Sitios
-          </Link>
-          )
+        <label className="toggle-row">
+          <span className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={step.twoPhase}
+              onChange={(e) => setTwoPhase(e.target.checked)}
+            />
+            <span className="toggle-slider" />
+          </span>
+          <span className="toggle-text">
+            <span className="toggle-title">Comida en 2 pasos</span>
+            <span className="toggle-desc">
+              Primero el tipo, luego el sitio según tu{" "}
+              <Link href="/lugares" target="_blank">
+                catálogo de Sitios
+              </Link>
+              .
+            </span>
+          </span>
         </label>
       )}
 

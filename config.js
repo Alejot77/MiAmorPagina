@@ -35,3 +35,8 @@ export function foodTypeInfo(key) {
   return FOOD_TYPES.find((f) => f.key === key) || FOOD_TYPES[FOOD_TYPES.length - 1];
 }
 
+// Sistema de puntos: cada categoria agregada a un plan suma puntos a quien la
+// armo. Al llegar a DESSERT_THRESHOLD, el otro le debe un postre.
+export const POINTS_PER_CATEGORY = 10;
+export const DESSERT_THRESHOLD = 100;
+

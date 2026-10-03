@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
-import { PEOPLE, categoryInfo, FOOD_TYPES } from "@/config";
+import { PEOPLE, categoryInfo, FOOD_TYPES, POINTS_PER_CATEGORY } from "@/config";
 
 export const dynamic = "force-dynamic";
 
@@ -112,20 +112,24 @@ export async function POST(request) {
   }
 
   const id = Date.now().toString();
+  const pointsEarned = normalized.length * POINTS_PER_CATEGORY;
   const plan = {
     id,
     weekend,
     steps: normalized,
     createdBy: person,
     createdAt: new Date().toISOString(),
+    pointsAwardedFor: normalized.length,
   };
 
   await kv.set(`plan:${id}`, plan);
   await kv.lpush("plans", id);
+  await kv.incrby(`points:${person}`, pointsEarned);
 
   return NextResponse.json({
     plan,
     votes: Object.fromEntries(normalized.map((s) => [s.id, {}])),
+    pointsEarned,
   });
 }
 
@@ -153,15 +157,25 @@ export async function PATCH(request) {
     );
   }
 
+  // Puntos: solo se premian categorias nuevas por encima del maximo ya
+  // premiado para este plan, para no repetir puntos al solo editar texto.
+  const prevAwarded = existing.pointsAwardedFor || 0;
+  const newCount = normalized.length;
+  const pointsEarned = Math.max(0, newCount - prevAwarded) * POINTS_PER_CATEGORY;
+
   const updated = {
     ...existing,
     weekend: weekend || existing.weekend,
     steps: normalized,
     updatedBy: person,
     updatedAt: new Date().toISOString(),
+    pointsAwardedFor: Math.max(prevAwarded, newCount),
   };
 
   await kv.set(`plan:${planId}`, updated);
+  if (pointsEarned > 0) {
+    await kv.incrby(`points:${person}`, pointsEarned);
+  }
 
   // Se borran los votos de categorias que ya no existen...
   const newStepIds = new Set(normalized.map((s) => s.id));
@@ -183,7 +197,7 @@ export async function PATCH(request) {
   }
 
   const votes = await loadVotes(planId, updated);
-  return NextResponse.json({ plan: updated, votes });
+  return NextResponse.json({ plan: updated, votes, pointsEarned });
 }
 
 export async function DELETE(request) {
