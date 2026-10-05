@@ -19,12 +19,24 @@ const nunito = Nunito({
 export const metadata = {
   title: "¿Qué comemos?",
   description: "Encuesta para decidir qué comer el fin de semana",
+  // Para que en iPhone "Agregar a inicio" la abra como app (sin barra de
+  // Safari) con su ícono: es lo que permite las notificaciones allá.
+  appleWebApp: {
+    capable: true,
+    title: "Nuestros planes",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#9d6fe0",
 };
 
 export default function RootLayout({ children }) {

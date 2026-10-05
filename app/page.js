@@ -12,6 +12,7 @@ import {
 } from "@/config";
 import { useThemePerson } from "@/lib/useThemePerson";
 import { usePushNotifications } from "@/lib/usePushNotifications";
+import PushPrompt, { useAutoPushPrompt } from "./PushPrompt";
 
 const STORAGE_KEY = "miamor_person";
 const FLOWER_SEEN_KEY = "miamor_flowers_seen";
@@ -107,6 +108,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showFlowerModal, setShowFlowerModal] = useState(false);
+  // "¿Activar los avisos?" al entrar (nunca encima del modal de las flores).
+  const [pushPromptOpen, setPushPromptOpen] = useAutoPushPrompt(push, Boolean(person) && !showFlowerModal);
   const [deletingId, setDeletingId] = useState(null);
 
   const [formMode, setFormMode] = useState(null); // null | "create" | "edit" | "addCategory"
@@ -520,7 +523,7 @@ export default function Home() {
             {push.supported && (
               <button
                 className="link-btn"
-                onClick={push.subscribed ? push.unsubscribe : push.subscribe}
+                onClick={push.subscribed ? push.unsubscribe : () => setPushPromptOpen(true)}
                 disabled={push.loading}
                 title={
                   push.subscribed
@@ -531,6 +534,15 @@ export default function Home() {
                 {push.subscribed ? "🔔 Activadas" : "🔔 Activar avisos"}
               </button>
             )}
+            {push.needsInstall && (
+              <button
+                className="link-btn"
+                onClick={() => setPushPromptOpen(true)}
+                title="En iPhone hay que instalar la app para recibir avisos"
+              >
+                🔔 Activar avisos
+              </button>
+            )}
             <button className="link-btn" onClick={changePerson}>
               Cambiar
             </button>
@@ -538,6 +550,7 @@ export default function Home() {
         </div>
       </header>
       <main className="wrap">
+      <PushPrompt push={push} open={pushPromptOpen} onClose={() => setPushPromptOpen(false)} />
       {showFlowerModal && (
         <div className="flower-modal-overlay">
           <div className="flower-modal-card">

@@ -75,9 +75,17 @@ Si no configuras estas variables, la app funciona igual pero el botón de
 notificaciones no aparece (se oculta solo si no hay clave pública).
 
 Notas:
-- Hay que darle permiso de notificaciones al navegador cuando lo pida.
-- En iPhone, Safari solo manda notificaciones push si antes "Agregan a
-  pantalla de inicio" la página (Compartir → Agregar a pantalla de
-  inicio) y la abren desde ese ícono.
+- Al entrar, la app pregunta **"¿Activar los avisos?"** (si se responde
+  "Ahora no", vuelve a preguntar en 7 días). Al tocar "Sí, activar" sale la
+  solicitud de permiso del celular/navegador. Si el navegador no la muestra
+  o quedó bloqueada, la app explica dónde activarlas a mano.
+- La app es instalable (PWA): tiene manifest (`app/manifest.js`) e íconos
+  (`public/icon-*.png`, `public/apple-touch-icon.png`). En Android, Chrome
+  ofrece "Instalar app"; en iPhone se instala con Compartir → "Agregar a
+  inicio".
+- **En iPhone es obligatorio instalarla**: Safari solo permite
+  notificaciones a apps agregadas a la pantalla de inicio y abiertas desde
+  ese ícono (iOS 16.4 o más reciente). Si se abre en Safari, la app muestra
+  esos pasos en vez del botón de activar.
 - Las notificaciones solo le llegan a **la otra persona**, no a quien
   hizo la acción.
