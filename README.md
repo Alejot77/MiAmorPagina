@@ -55,8 +55,8 @@ cualquiera). Si prefieren, también se puede borrar manualmente la fila
 ## Notificaciones
 
 La app puede avisar por notificación push del celular/navegador cuando el
-otro crea un plan o vota (botón **🔔 Activar avisos** en el menú de
-arriba). Para que funcione hace falta configurar 3 variables de entorno
+otro crea un plan o vota (se activan desde la ventana que aparece al
+entrar, o desde **Perfil → 🔔 Avisos**). Para que funcione hace falta configurar 3 variables de entorno
 en Vercel (**Settings → Environment Variables**):
 
 1. Genera un par de claves VAPID (una sola vez, se reutilizan siempre):

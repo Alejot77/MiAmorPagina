@@ -520,29 +520,6 @@ export default function Home() {
             <Link href="/ruleta">🎡 Ruleta</Link>
             <Link href="/flores">🌼 Flores</Link>
             <Link href="/history">Historial</Link>
-            {push.supported && (
-              <button
-                className="link-btn"
-                onClick={push.subscribed ? push.unsubscribe : () => setPushPromptOpen(true)}
-                disabled={push.loading}
-                title={
-                  push.subscribed
-                    ? "Ya recibes notificaciones en este dispositivo"
-                    : "Avisarte cuando creen un plan o voten"
-                }
-              >
-                {push.subscribed ? "🔔 Activadas" : "🔔 Activar avisos"}
-              </button>
-            )}
-            {push.needsInstall && (
-              <button
-                className="link-btn"
-                onClick={() => setPushPromptOpen(true)}
-                title="En iPhone hay que instalar la app para recibir avisos"
-              >
-                🔔 Activar avisos
-              </button>
-            )}
             <button className="link-btn" onClick={changePerson}>
               Cambiar
             </button>
