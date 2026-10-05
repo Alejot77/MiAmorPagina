@@ -198,6 +198,29 @@ export async function PATCH(request) {
     }
   }
 
+  const target = otherPerson(person);
+  if (target) {
+    const oldStepIds = new Set(existing.steps.map((s) => s.id));
+    const added = normalized.filter((s) => !oldStepIds.has(s.id));
+    await sendPushToPerson(
+      target,
+      added.length > 0
+        ? {
+            title: "➕ Nueva pregunta en el plan",
+            body:
+              added.length === 1
+                ? `${person} agregó "${added[0].question}". ¡Ve a votar!`
+                : `${person} agregó ${added.length} preguntas al plan. ¡Ve a votar!`,
+            url: "/",
+          }
+        : {
+            title: "✏️ Plan editado",
+            body: `${person} hizo cambios en el plan. ¡Échale un ojo!`,
+            url: "/",
+          }
+    );
+  }
+
   const { plans, votes } = await loadActivePlans();
   return NextResponse.json({ plans, votes, pointsEarned });
 }
