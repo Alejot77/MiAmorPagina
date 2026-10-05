@@ -1637,3 +1637,19 @@ select:focus {
   margin-top: 24px;
 }
 
+
+/* Ventana "¿Activar los avisos?" (reutiliza el modal de las flores) */
+
+.push-steps {
+  text-align: left;
+  color: var(--ink);
+  margin: 0 0 20px;
+  padding-left: 22px;
+  line-height: 1.6;
+}
+
+.push-error {
+  text-align: left;
+  margin-bottom: 14px;
+  line-height: 1.45;
+}
