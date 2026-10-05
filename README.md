@@ -55,7 +55,7 @@ cualquiera). Si prefieren, también se puede borrar manualmente la fila
 ## Notificaciones
 
 La app puede avisar por notificación push del celular/navegador cuando el
-otro crea un plan o vota (se activan desde la ventana que aparece al
+otro crea o edita un plan, o vota (se activan desde la ventana que aparece al
 entrar, o desde **Perfil → 🔔 Avisos**). Para que funcione hace falta configurar 3 variables de entorno
 en Vercel (**Settings → Environment Variables**):
 
@@ -89,3 +89,9 @@ Notas:
   esos pasos en vez del botón de activar.
 - Las notificaciones solo le llegan a **la otra persona**, no a quien
   hizo la acción.
+- Si se cambian las claves VAPID, cada dispositivo renueva su suscripción
+  solo la próxima vez que se abre la app (mientras tanto los avisos a ese
+  dispositivo fallan).
+- Cada envío queda en los logs de Vercel (**Logs**) con el prefijo
+  `[push]`: a quién se mandó, si falló y por qué, o si esa persona no tiene
+  dispositivos con avisos activados.
