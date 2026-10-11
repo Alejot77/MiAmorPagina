@@ -34,14 +34,20 @@ function normalizeSteps(rawSteps) {
     let kind;
 
     if (twoPhase) {
-      const selectedKeys = Array.isArray(s.selectedTypes)
-        ? s.selectedTypes.filter((key) => FOOD_TYPES.some((f) => f.key === key))
-        : [];
-      if (selectedKeys.length < 2) return null;
-      options = selectedKeys.map((key) => {
-        const f = FOOD_TYPES.find((ft) => ft.key === key);
-        return { id: f.key, name: f.label };
-      });
+      // Cada tipo es una clave de FOOD_TYPES o un texto libre ("Otro").
+      const seen = new Set();
+      options = [];
+      for (const raw of Array.isArray(s.selectedTypes) ? s.selectedTypes : []) {
+        if (typeof raw !== "string" || !raw.trim()) continue;
+        const known = FOOD_TYPES.find((f) => f.key === raw);
+        const option = known
+          ? { id: known.key, name: known.label }
+          : { id: `custom:${raw.trim().toLowerCase()}`, name: raw.trim() };
+        if (seen.has(option.id)) continue;
+        seen.add(option.id);
+        options.push(option);
+      }
+      if (options.length < 2) return null;
       kind = "comida-tipo";
     } else {
       const cleanOptions = Array.isArray(s.options)
@@ -49,6 +55,7 @@ function normalizeSteps(rawSteps) {
             .map((o) => ({
               name: typeof o?.name === "string" ? o.name.trim() : "",
               link: typeof o?.link === "string" ? o.link.trim() : "",
+              placeId: typeof o?.placeId === "string" ? o.placeId : "",
             }))
             .filter((o) => o.name)
         : [];
@@ -59,6 +66,7 @@ function normalizeSteps(rawSteps) {
         id: `opt${j}`,
         name: o.name,
         ...(o.link ? { link: o.link } : {}),
+        ...(o.placeId ? { placeId: o.placeId } : {}),
       }));
       // "comida-lugar" es el paso generado automaticamente: se conserva ese
       // tipo si el cliente lo reenvia tal cual (edicion sin tocar el toggle).
@@ -107,14 +115,16 @@ export async function POST(request) {
 
   const { pointsPerCategory } = await getSettings();
   const id = Date.now().toString();
-  const pointsEarned = normalized.length * pointsPerCategory;
+  // El paso de restaurante (generatedFrom) no es una categoria nueva: no suma puntos.
+  const categoryCount = normalized.filter((st) => !st.generatedFrom).length;
+  const pointsEarned = categoryCount * pointsPerCategory;
   const plan = {
     id,
     weekend,
     steps: normalized,
     createdBy: person,
     createdAt: new Date().toISOString(),
-    pointsAwardedFor: normalized.length,
+    pointsAwardedFor: categoryCount,
   };
 
   await kv.set(`plan:${id}`, plan);
@@ -162,7 +172,7 @@ export async function PATCH(request) {
   // premiado para este plan, para no repetir puntos al solo editar texto.
   const { pointsPerCategory } = await getSettings();
   const prevAwarded = existing.pointsAwardedFor || 0;
-  const newCount = normalized.length;
+  const newCount = normalized.filter((st) => !st.generatedFrom).length;
   const pointsEarned = Math.max(0, newCount - prevAwarded) * pointsPerCategory;
 
   const updated = {

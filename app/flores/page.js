@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import "./flores.css";
 
 const QUOTES = [
   "Las flores amarillas te quedan bien, como te queda bien mi cariño.",

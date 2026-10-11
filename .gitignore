@@ -4,3 +4,6 @@ node_modules
 .vercel
 .claude
 next-env.d.ts
+
+*.tsbuildinfo
+next-env.d.ts

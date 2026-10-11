@@ -1,24 +1,24 @@
 import "./globals.css";
-import { Fraunces, Nunito } from "next/font/google";
+import { DM_Sans, Fraunces } from "next/font/google";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["600", "700"],
   style: ["normal", "italic"],
   variable: "--font-heading",
   display: "swap",
 });
 
-const nunito = Nunito({
+const dmSans = DM_Sans({
   subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-body",
   display: "swap",
 });
 
 export const metadata = {
-  title: "¿Qué comemos?",
-  description: "Encuesta para decidir qué comer el fin de semana",
+  title: "Plan de dos",
+  description: "Para que Stefanny y Alejandro planeen juntos su fin de semana",
 };
 
 export const viewport = {
@@ -29,7 +29,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es" className={`${fraunces.variable} ${nunito.variable}`}>
+    <html lang="es" className={`${fraunces.variable} ${dmSans.variable}`}>
       <body>{children}</body>
     </html>
   );
