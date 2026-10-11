@@ -30,7 +30,8 @@ export default function CalendarScreen({ entries, onCreateForDate, onOpenActive,
   const [monthIndex, setMonthIndex] = useState(start.getFullYear() * 12 + start.getMonth());
 
   const monthDate = new Date(Math.floor(monthIndex / 12), monthIndex % 12, 1);
-  const title = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(monthDate);
+  const monthLabel = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(monthDate);
+  const title = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
   const firstWeekday = (monthDate.getDay() + 6) % 7;
   const daysInMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).getDate();
   const days = [...Array(firstWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
@@ -42,7 +43,7 @@ export default function CalendarScreen({ entries, onCreateForDate, onOpenActive,
     <main className="page calendar-page">
       <span className="eyebrow">NUESTRO TIEMPO</span>
       <div className="title-row">
-        <h1 style={{ textTransform: "capitalize" }}>{title}</h1>
+        <h1>{title}</h1>
         <div>
           <button className="round-button" aria-label="Mes anterior" onClick={() => setMonthIndex(monthIndex - 1)}>‹</button>
           <button className="round-button" aria-label="Mes siguiente" onClick={() => setMonthIndex(monthIndex + 1)}>›</button>
