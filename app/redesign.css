@@ -658,3 +658,10 @@ a.text-link { text-decoration: none; }
 .flower-sheet h2 { font-size: 26px; }
 .flower-sheet p { color: var(--muted); font-size: 13px; margin: 6px 0 18px; }
 .flower-sheet .btn { width: 100%; margin-bottom: 6px; text-decoration: none; }
+
+/* Ventana "¿Activar los avisos?" y pasos para instalar la app en iPhone. */
+.push-dialog .btn { margin-top: 8px; }
+.push-dialog > p { font-size: 12px; line-height: 1.5; }
+.push-steps { text-align: left; color: var(--ink); font-size: 12px; line-height: 1.6; margin: 0 0 12px; padding-left: 20px; list-style: decimal; }
+.settings-section .push-steps { margin: 12px 0 0; }
+.push-error { text-align: left; line-height: 1.45; }

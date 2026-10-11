@@ -7,8 +7,7 @@ import type { PointsData } from "./types";
 import { api } from "./api";
 import { Avatar, Button, ConfirmDialog, Icon, Modal, PointsProgress } from "./ui";
 import { OTHER_PERSON } from "./planUtils";
-
-type Push = { supported: boolean; subscribed: boolean; loading: boolean; error: string; subscribe: () => void; unsubscribe: () => void };
+import { PushSettings, type Push } from "./PushPrompt";
 
 export function ProfileMenu({ person, points, close, openRoulette, openSettings, logout }: {
   person: string;
@@ -188,30 +187,7 @@ export function SettingsScreen({ person, points, settings, push, close, onChange
             <Button variant="secondary" className="full" onClick={saveConfig}>{configMsg || "Guardar configuración"}</Button>
           </section>
 
-          <section className="settings-section">
-            <div className="notification-row">
-              <span className="menu-icon purple">🔔</span>
-              <div>
-                <strong>Avisos</strong>
-                <small>
-                  {!push.supported
-                    ? "No disponibles en este dispositivo o navegador"
-                    : push.subscribed ? "Activados en este dispositivo" : "Desactivados en este dispositivo"}
-                </small>
-              </div>
-              {push.supported && (
-                <button
-                  className={`notification-toggle ${push.subscribed ? "on" : ""}`}
-                  onClick={push.subscribed ? push.unsubscribe : push.subscribe}
-                  disabled={push.loading}
-                  aria-label={push.subscribed ? "Desactivar avisos" : "Activar avisos"}
-                >
-                  <i />
-                </button>
-              )}
-            </div>
-            {push.error && <p className="form-error" style={{ margin: "10px 0 0" }}>{push.error}</p>}
-          </section>
+          <PushSettings push={push} />
 
           <section className="settings-section">
             <div className="section-title"><Icon name="heart" /><div><strong>Mi clave</strong><small>Para entrar como {person}</small></div></div>

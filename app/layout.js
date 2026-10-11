@@ -19,12 +19,24 @@ const dmSans = DM_Sans({
 export const metadata = {
   title: "Plan de dos",
   description: "Para que Stefanny y Alejandro planeen juntos su fin de semana",
+  // Para que en iPhone "Agregar a inicio" la abra como app (sin barra de
+  // Safari) con su ícono: es lo que permite las notificaciones allá.
+  appleWebApp: {
+    capable: true,
+    title: "Nuestros planes",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#9d6fe0",
 };
 
 export default function RootLayout({ children }) {

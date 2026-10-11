@@ -16,6 +16,7 @@ import { PlaceDetail, PlaceForm, Places } from "./Places";
 import { History, MemoryDetail } from "./History";
 import { ProfileMenu, SettingsScreen } from "./Settings";
 import Roulette from "./Roulette";
+import PushPrompt, { useAutoPushPrompt, type Push } from "./PushPrompt";
 
 type Tab = "home" | "calendar" | "places" | "history";
 type Overlay =
@@ -47,7 +48,7 @@ function todayKey() {
 }
 
 export default function AppShell({ person, onLogout }: { person: string; onLogout: () => void }) {
-  const push = usePushNotifications(person);
+  const push = usePushNotifications(person) as Push;
   const [tab, setTab] = useState<Tab>("home");
   const [overlay, setOverlay] = useState<Overlay>({ type: "none" });
   const [flow, setFlow] = useState<Flow | null>(null);
@@ -60,6 +61,8 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
   const [error, setError] = useState("");
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // "¿Activar los avisos?" al entrar (nunca encima del modal de las flores).
+  const [pushPromptOpen, setPushPromptOpen] = useAutoPushPrompt(push, overlay.type !== "flower");
 
   const close = () => setOverlay({ type: "none" });
   const fail = (err: any) => setError(err?.message || "Algo salió mal.");
@@ -374,6 +377,8 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
             onCancel={() => setDeletePlanId(null)}
           />
         )}
+
+        <PushPrompt push={push} open={pushPromptOpen} onClose={() => setPushPromptOpen(false)} />
 
         {toast && (
           <div className="points-toast">
