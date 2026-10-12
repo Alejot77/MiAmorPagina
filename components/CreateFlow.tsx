@@ -5,7 +5,8 @@ import { CATEGORIES, FOOD_TYPES, PEOPLE, categoryInfo, foodTypeInfo } from "@/co
 import type { Place, Plan, Step } from "./types";
 import { api } from "./api";
 import { Avatar, Button, Icon, Pill } from "./ui";
-import { addDays, dayMonthUpper, longDate, parseDate, placeEmoji, rootSteps, shortDayUpper, toDateStr, upcomingSaturday } from "./planUtils";
+import { addDays, dayMonthUpper, longDate, parseDate, placeEmoji, rootSteps, shortDayUpper, toDateStr, todayStr, upcomingSaturday, weekdayUpper } from "./planUtils";
+import { holidayOn, holidaysBetween } from "./holidays";
 
 type Mode = "create" | "edit" | "add";
 type Restaurant = { name: string; link?: string; placeId?: string; save?: boolean };
@@ -146,11 +147,17 @@ export default function CreateFlow({ mode, person, plan, repeatFrom, presetDate,
   const pickerDays = [...Array(firstWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
   const currentMonthIndex = new Date().getFullYear() * 12 + new Date().getMonth();
 
+  // Sabado y domingo siempre; "Festivo" solo si de verdad hay uno (Colombia)
+  // entre hoy y el lunes despues del sabado.
+  const sunday = addDays(saturday, 1);
+  const withHoliday = (date: string, text: string) => (holidayOn(date) ? `${text} · ${holidayOn(date)!.name}` : text);
   const quickDays = [
-    { date: saturday, tag: "SÁB", title: `Sábado ${parseDate(saturday).getDate()}`, sub: "Este sábado" },
-    { date: addDays(saturday, 1), tag: "DOM", title: `Domingo ${parseDate(addDays(saturday, 1)).getDate()}`, sub: "Este domingo" },
-    { date: addDays(saturday, 2), tag: "✨", title: "Festivo", sub: longDate(addDays(saturday, 2)) },
-  ];
+    { date: saturday, tag: "SÁB", title: `Sábado ${parseDate(saturday).getDate()}`, sub: withHoliday(saturday, "Este sábado") },
+    { date: sunday, tag: "DOM", title: `Domingo ${parseDate(sunday).getDate()}`, sub: withHoliday(sunday, "Este domingo") },
+    ...holidaysBetween(todayStr(), addDays(saturday, 2))
+      .filter((h) => h.date !== saturday && h.date !== sunday)
+      .map((h) => ({ date: h.date, tag: weekdayUpper(h.date).slice(0, 3), title: "Festivo ✨", sub: `${longDate(h.date)} · ${h.name}` })),
+  ].sort((a, b) => (a.date < b.date ? -1 : 1));
   const isQuick = quickDays.some((d) => d.date === date);
 
   function questionFor(key: string) {
@@ -292,7 +299,7 @@ export default function CreateFlow({ mode, person, plan, repeatFrom, presetDate,
             <div className="day-options">
               {quickDays.map((d) => (
                 <button key={d.date} onClick={() => setDate(d.date)} className={date === d.date ? "day-option selected" : "day-option"}>
-                  <span><b>{d.tag}</b>{d.tag !== "✨" && <strong>{parseDate(d.date).getDate()}</strong>}</span>
+                  <span><b>{d.tag}</b><strong>{parseDate(d.date).getDate()}</strong></span>
                   <div><strong>{d.title}</strong><small>{d.sub}</small></div>
                   {date === d.date && <i><Icon name="check" size={15} /></i>}
                 </button>
