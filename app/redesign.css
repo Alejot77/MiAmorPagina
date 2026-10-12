@@ -665,3 +665,18 @@ a.text-link { text-decoration: none; }
 .push-steps { text-align: left; color: var(--ink); font-size: 12px; line-height: 1.6; margin: 0 0 12px; padding-left: 20px; list-style: decimal; }
 .settings-section .push-steps { margin: 12px 0 0; }
 .push-error { text-align: left; line-height: 1.45; }
+
+/* Correo de la cuenta: login, paginas de los enlaces y Ajustes. */
+.login-form input[type="email"] { letter-spacing: normal; font-size: 15px; }
+.login-form input[type="password"]::placeholder { letter-spacing: normal; }
+.login-notice { text-align: center; }
+.login-notice-emoji { display: block; font-size: 40px; margin: 4px 0 6px; }
+.login-card > .login-notice-emoji { margin-top: 0; }
+.login-link { display: flex; margin-top: 20px; text-decoration: none; }
+.email-banner { margin: 0 0 14px; border-radius: 14px; background: var(--card); box-shadow: var(--shadow); padding: 12px 13px; font-size: 12px; line-height: 1.45; display: flex; gap: 10px; align-items: center; }
+.email-banner > span:first-child { font-size: 20px; }
+.email-banner p { flex: 1; margin: 0; color: var(--muted); }
+.email-banner strong { color: var(--ink); }
+.email-banner button { border: 0; background: var(--card-selected); color: var(--purple); font-weight: 700; font-size: 11px; border-radius: 10px; padding: 8px 10px; cursor: pointer; white-space: nowrap; }
+.email-status { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0 0 12px; }
+.email-status strong { color: var(--ink); }

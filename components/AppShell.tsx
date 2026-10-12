@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PEOPLE, categoryInfo } from "@/config";
 import { usePushNotifications } from "@/lib/usePushNotifications";
-import type { HistoryEntry, Place, Plan, PointsData, VotesByPlan } from "./types";
+import type { Account, HistoryEntry, Place, Plan, PointsData, VotesByPlan } from "./types";
 import { api } from "./api";
 import { Avatar, Button, ConfirmDialog, Icon, Modal, SheetHeader, type IconName } from "./ui";
 import { OTHER_PERSON, generatedStep, longDate, stepResult } from "./planUtils";
@@ -58,6 +58,8 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
   const [points, setPoints] = useState<PointsData | null>(null);
   const [settings, setSettings] = useState<{ pointsPerCategory: number; dessertThreshold: number } | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [account, setAccount] = useState<Account | null>(null);
+  const [emailBannerMsg, setEmailBannerMsg] = useState("");
   const [error, setError] = useState("");
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -77,9 +79,20 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
         setSettings(s);
       })
       .catch(fail);
+  const loadAccount = () => api<Account>(`/api/auth?person=${encodeURIComponent(person)}`).then(setAccount).catch(() => {});
+
+  async function resendVerification() {
+    try {
+      await api("/api/auth/email", "POST", { person });
+      setEmailBannerMsg("Listo, lo reenviamos. Revisa tu correo (y la carpeta de spam).");
+    } catch (err: any) {
+      setEmailBannerMsg(err.message);
+    }
+  }
 
   useEffect(() => {
     loadPlans();
+    loadAccount();
     loadHistory();
     loadPlaces();
     loadPoints();
@@ -299,6 +312,25 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
           <button className="icon-button" onClick={() => setOverlay({ type: "menu" })} aria-label="Abrir menú"><Icon name="dots" /></button>
         </header>
 
+        {account && !account.emailVerified && (
+          <div style={{ padding: "14px 20px 0" }}>
+            <div className="email-banner">
+              <span>✉️</span>
+              {account.pendingEmail ? (
+                <>
+                  <p><strong>Confirma tu correo.</strong> {emailBannerMsg || `Te enviamos un enlace a ${account.pendingEmail}.`}</p>
+                  <button onClick={resendVerification}>Reenviar</button>
+                </>
+              ) : (
+                <>
+                  <p><strong>Vincula tu correo</strong> para poder recuperar tu clave si la olvidas.</p>
+                  <button onClick={() => setOverlay({ type: "settings" })}>Vincular</button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {error && (
           <div style={{ padding: "14px 20px 0" }}>
             <div className="error-banner"><span>{error}</span><button onClick={() => setError("")}>Cerrar</button></div>
@@ -351,7 +383,7 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
           />
         )}
         {overlay.type === "settings" && (
-          <SettingsScreen person={person} points={points} settings={settings} push={push} close={close} onChanged={loadPoints} />
+          <SettingsScreen person={person} points={points} settings={settings} push={push} account={account} close={close} onChanged={loadPoints} onAccountChanged={(a) => { setAccount(a); setEmailBannerMsg(""); }} />
         )}
         {overlay.type === "roulette" && <Roulette places={places} initialOptions={overlay.options} close={close} />}
         {overlay.type === "flower" && (

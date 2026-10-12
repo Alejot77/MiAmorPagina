@@ -6,7 +6,7 @@ import { initialOf } from "./planUtils";
 export type IconName =
   | "home" | "calendar" | "pin" | "clock" | "plus" | "dots" | "chevron" | "check" | "heart"
   | "sparkles" | "sliders" | "flower" | "roulette" | "arrow" | "star" | "close" | "note" | "map"
-  | "edit" | "trash" | "logout";
+  | "edit" | "trash" | "logout" | "mail";
 
 const paths: Record<IconName, ReactNode> = {
   home: <><path d="m3 10 9-7 9 7" /><path d="M5 9v11h14V9M9 20v-6h6v6" /></>,
@@ -30,6 +30,7 @@ const paths: Record<IconName, ReactNode> = {
   edit: <><path d="M4 20h4L19 9l-4-4L4 16v4Z" /><path d="m13 7 4 4" /></>,
   trash: <><path d="M4 7h16M10 11v6m4-6v6" /><path d="M6 7l1 13h10l1-13M9 7V4h6v3" /></>,
   logout: <><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11" /></>,
+  mail: <><rect x="3" y="5" width="18" height="14" rx="3" /><path d="m4 7 8 6 8-6" /></>,
 };
 
 export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {

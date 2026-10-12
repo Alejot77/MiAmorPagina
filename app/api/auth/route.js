@@ -1,53 +1,48 @@
-import crypto from "crypto";
 import { NextResponse } from "next/server";
-import { kv } from "@/lib/kv";
 import { PEOPLE } from "@/config";
+import {
+  getAuth,
+  saveAuth,
+  hashPassword,
+  verifyPassword,
+  normalizeEmail,
+  isValidEmail,
+  publicStatus,
+  trySendVerification,
+} from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-function hashPassword(password) {
-  const salt = crypto.randomBytes(16).toString("hex");
-  const hash = crypto.scryptSync(password, salt, 64).toString("hex");
-  return { salt, hash };
-}
-
-function verifyPassword(password, record) {
-  if (!record?.salt || !record?.hash) return false;
-  const hash = crypto.scryptSync(password, record.salt, 64).toString("hex");
-  const a = Buffer.from(hash, "hex");
-  const b = Buffer.from(record.hash, "hex");
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-
-// GET /api/auth?person=X -> indica si esa persona ya tiene una clave creada.
+// GET /api/auth?person=X -> si tiene clave y el estado de su correo.
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const person = searchParams.get("person");
   if (!PEOPLE.includes(person)) {
     return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
   }
-  const existing = await kv.get(`auth:${person}`);
-  return NextResponse.json({ hasPassword: Boolean(existing) });
+  return NextResponse.json(publicStatus(await getAuth(person)));
 }
 
-// POST -> iniciar sesion con una clave ya creada.
+// POST -> iniciar sesion con una clave ya creada. `needsEmail` avisa que
+// la cuenta es de antes del correo y hay que vincular uno.
 export async function POST(request) {
   const body = await request.json();
   const { person, password } = body || {};
   if (!PEOPLE.includes(person)) {
     return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
   }
-  const existing = await kv.get(`auth:${person}`);
+  const existing = await getAuth(person);
   if (!existing) {
-    return NextResponse.json({ error: "Todavía no has creado tu clave" }, { status: 400 });
+    return NextResponse.json({ error: "Todavía no has creado tu cuenta" }, { status: 400 });
   }
   if (!verifyPassword(password || "", existing)) {
     return NextResponse.json({ error: "Clave incorrecta" }, { status: 401 });
   }
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, needsEmail: !existing.email && !existing.pendingEmail });
 }
 
-// PUT -> crear la clave por primera vez, o cambiarla (pidiendo la actual).
+// PUT -> crear la cuenta (correo + clave) la primera vez, o cambiar la
+// clave (pidiendo la actual).
 export async function PUT(request) {
   const body = await request.json();
   const { person, currentPassword, newPassword, newPasswordConfirm } = body || {};
@@ -56,34 +51,25 @@ export async function PUT(request) {
     return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
   }
   if (!newPassword || newPassword.length < 4) {
-    return NextResponse.json(
-      { error: "La clave debe tener al menos 4 caracteres" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "La clave debe tener al menos 4 caracteres" }, { status: 400 });
   }
   if (newPassword !== newPasswordConfirm) {
     return NextResponse.json({ error: "Las claves no coinciden" }, { status: 400 });
   }
 
-  const existing = await kv.get(`auth:${person}`);
+  const existing = await getAuth(person);
   if (existing) {
     if (!verifyPassword(currentPassword || "", existing)) {
       return NextResponse.json({ error: "La clave actual no es correcta" }, { status: 401 });
     }
+    await saveAuth(person, { ...existing, ...hashPassword(newPassword) });
+    return NextResponse.json({ ok: true });
   }
 
-  await kv.set(`auth:${person}`, hashPassword(newPassword));
-  return NextResponse.json({ ok: true });
-}
-
-// DELETE -> "olvidé mi clave": borra la clave actual. La proxima vez que
-// esa persona entre, la app le pide crear una nueva (como la primera vez).
-export async function DELETE(request) {
-  const body = await request.json();
-  const { person } = body || {};
-  if (!PEOPLE.includes(person)) {
-    return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
+  const email = normalizeEmail(body.email);
+  if (!isValidEmail(email)) {
+    return NextResponse.json({ error: "Escribe un correo válido" }, { status: 400 });
   }
-  await kv.del(`auth:${person}`);
-  return NextResponse.json({ ok: true });
+  await saveAuth(person, { ...hashPassword(newPassword), pendingEmail: email });
+  return NextResponse.json({ ok: true, ...(await trySendVerification(request, person, email)) });
 }

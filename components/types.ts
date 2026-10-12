@@ -44,3 +44,11 @@ export type PointsData = {
 };
 
 export type HistoryEntry = { plan: Plan; votes: PlanVotes };
+
+// Estado del correo de la cuenta (las direcciones vienen enmascaradas).
+export type Account = {
+  hasPassword: boolean;
+  email: string | null; // verificado
+  emailVerified: boolean;
+  pendingEmail: string | null; // esperando el enlace de confirmacion
+};

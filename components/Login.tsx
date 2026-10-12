@@ -11,17 +11,23 @@ function themeClass(name: string) {
   return name === "Alejandro" ? "theme-dark" : "theme-light";
 }
 
+type Mode = "checking" | "login" | "setup" | "link-email" | "notice";
+type Notice = { emoji: string; title: string; text: string; warning?: string; enter: boolean };
+
 export default function Login({ onLogin }: { onLogin: (person: string) => void }) {
   const [pending, setPending] = useState<string | null>(null);
-  const [mode, setMode] = useState<"checking" | "login" | "setup">("checking");
+  const [mode, setMode] = useState<Mode>("checking");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function choose(name: string) {
     setPending(name);
     setMode("checking");
+    setEmail("");
     setPassword("");
     setConfirm("");
     setError("");
@@ -34,21 +40,38 @@ export default function Login({ onLogin }: { onLogin: (person: string) => void }
     }
   }
 
+  function showEmailSent(res: { emailSent?: boolean; emailError?: string }, address: string) {
+    setNotice({
+      emoji: "💌",
+      title: "Revisa tu correo",
+      text: `Te enviamos un enlace a ${address} para confirmarlo. Ese será tu correo para recuperar la clave.`,
+      warning: res.emailSent === false ? res.emailError : undefined,
+      enter: true,
+    });
+    setMode("notice");
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError("");
     if (mode === "setup") {
+      if (!email.includes("@")) return setError("Escribe un correo válido");
       if (password.length < 4) return setError("La clave debe tener al menos 4 caracteres");
       if (password !== confirm) return setError("Las claves no coinciden");
     }
     setBusy(true);
     try {
       if (mode === "setup") {
-        await api("/api/auth", "PUT", { person: pending, newPassword: password, newPasswordConfirm: confirm });
+        const res = await api("/api/auth", "PUT", { person: pending, email, newPassword: password, newPasswordConfirm: confirm });
+        showEmailSent(res, email.trim());
+      } else if (mode === "link-email") {
+        const res = await api("/api/auth/email", "PATCH", { person: pending, password, email });
+        showEmailSent(res, email.trim());
       } else {
-        await api("/api/auth", "POST", { person: pending, password });
+        const res = await api<{ needsEmail: boolean }>("/api/auth", "POST", { person: pending, password });
+        if (res.needsEmail) setMode("link-email");
+        else onLogin(pending!);
       }
-      onLogin(pending!);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -57,20 +80,31 @@ export default function Login({ onLogin }: { onLogin: (person: string) => void }
   }
 
   async function forgot() {
-    if (!window.confirm(`¿Olvidaste tu clave? Esto borra la clave actual de ${pending} y vas a tener que crear una nueva.`)) return;
     setError("");
     setBusy(true);
     try {
-      await api("/api/auth", "DELETE", { person: pending });
-      setPassword("");
-      setConfirm("");
-      setMode("setup");
+      const res = await api<{ email: string; again?: boolean }>("/api/auth/forgot", "POST", { person: pending });
+      setNotice({
+        emoji: "🔑",
+        title: res.again ? "Ya te lo enviamos" : "Revisa tu correo",
+        text: `${res.again ? "Hace un momento enviamos" : "Te enviamos"} un enlace a ${res.email} para crear una clave nueva. Vence en 1 hora.`,
+        enter: false,
+      });
+      setMode("notice");
     } catch (err: any) {
       setError(err.message);
     } finally {
       setBusy(false);
     }
   }
+
+  function back() {
+    setPending(null);
+    setNotice(null);
+  }
+
+  const subtitle =
+    mode === "setup" ? `Crea tu cuenta, ${pending}` : mode === "link-email" ? "Vincula tu correo" : `Clave de ${pending}`;
 
   return (
     <main className="login-screen">
@@ -93,26 +127,51 @@ export default function Login({ onLogin }: { onLogin: (person: string) => void }
           </>
         ) : mode === "checking" ? (
           <p className="login-subtitle">Un momento...</p>
+        ) : mode === "notice" && notice ? (
+          <div className="login-form login-notice">
+            <span className="login-notice-emoji">{notice.emoji}</span>
+            <p className="login-subtitle">{notice.title}</p>
+            <p className="login-hint">{notice.text}</p>
+            {notice.warning && <p className="login-error">{notice.warning}</p>}
+            {notice.enter ? (
+              <Button className={themeClass(pending)} onClick={() => onLogin(pending)}>Entrar</Button>
+            ) : (
+              <Button className={themeClass(pending)} onClick={() => { setNotice(null); setMode("login"); }}>Volver a la clave</Button>
+            )}
+          </div>
         ) : (
           <form className="login-form" onSubmit={submit}>
-            <p className="login-subtitle" style={{ textAlign: "center" }}>
-              {mode === "setup" ? `Crea tu clave, ${pending}` : `Clave de ${pending}`}
-            </p>
+            <p className="login-subtitle" style={{ textAlign: "center" }}>{subtitle}</p>
             {mode === "setup" && (
-              <p className="login-hint">Es la primera vez que entras: elige una clave de al menos 4 caracteres. La vas a necesitar la próxima vez.</p>
+              <p className="login-hint">Es la primera vez que entras. Tu correo sirve para recuperar la clave si algún día la olvidas.</p>
             )}
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••" autoFocus />
+            {mode === "link-email" && (
+              <p className="login-hint">Ahora las cuentas tienen correo: es el que usamos si olvidas tu clave. Te enviaremos un enlace para confirmarlo.</p>
+            )}
+            {(mode === "setup" || mode === "link-email") && (
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@correo.com" autoComplete="email" autoFocus required />
+            )}
+            {mode !== "link-email" && (
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={mode === "setup" ? "Crea una clave" : "••••"}
+                autoComplete={mode === "setup" ? "new-password" : "current-password"}
+                autoFocus={mode === "login"}
+              />
+            )}
             {mode === "setup" && (
-              <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Repite la clave" />
+              <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Repite la clave" autoComplete="new-password" />
             )}
             {error && <p className="login-error">{error}</p>}
             <Button type="submit" className={themeClass(pending)} disabled={busy}>
-              {busy ? "Un momento..." : mode === "setup" ? "Crear clave y entrar" : "Entrar"}
+              {busy ? "Un momento..." : mode === "setup" ? "Crear cuenta" : mode === "link-email" ? "Enviar enlace" : "Entrar"}
             </Button>
             {mode === "login" && (
               <button type="button" className="text-button" onClick={forgot} disabled={busy}>¿Olvidaste tu clave?</button>
             )}
-            <button type="button" className="text-button" onClick={() => setPending(null)}>← Volver</button>
+            {mode !== "link-email" && <button type="button" className="text-button" onClick={back}>← Volver</button>}
           </form>
         )}
       </div>

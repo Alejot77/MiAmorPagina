@@ -32,25 +32,45 @@ npm run dev
 
 Edita [config.js](config.js) y cambia los valores de `PEOPLE`.
 
-## Clave por persona
+## Cuenta por persona (correo + clave)
 
-La primera vez que alguien entra a su nombre, la app le pide crear una
-clave (dos veces, para confirmar). Las próximas veces en ese mismo
-dispositivo no la vuelve a pedir ("Cambiar" en el menú sí te manda de
-nuevo a elegir nombre y clave). La clave se guarda con hash (no en texto
-plano) en la base de datos, no en el código — así, para entrar como la
-otra persona en OTRO dispositivo hace falta su clave real, no algo
-visible en el código fuente. Cada quien puede cambiar su propia clave
-desde **Perfil → Cambiar mi clave** (pide la clave actual).
+La primera vez que alguien entra a su nombre, la app le pide **correo y
+clave**. Le llega un correo con un enlace para confirmar ese correo
+(vence en 24 horas). Las cuentas de antes del correo lo vinculan la
+siguiente vez que entran (o desde **Ajustes → Mi correo**); mientras no
+esté confirmado, la app muestra un aviso para reenviar el enlace.
 
-Si alguien olvida su clave, en la pantalla donde la pide hay un link
-**"¿Olvidaste tu clave?"** que la borra y manda directo a crear una
-nueva (como la primera vez). No pide verificación de identidad — es
-la misma idea de siempre: una barrera para no entrar sin querer o por
-curiosidad, no un sistema de autenticación con recuperación real
-(sin eso, cualquiera que sepa el nombre podría resetear la clave de
-cualquiera). Si prefieren, también se puede borrar manualmente la fila
-`auth:<nombre>` en la base de datos desde el dashboard de Upstash.
+La clave se guarda con hash (scrypt), nunca en texto plano. El correo
+verificado es el único que sirve para recuperar la clave:
+
+- **¿Olvidaste tu clave?** (en la pantalla de la clave) manda un enlace a
+  ese correo para crear una clave nueva. Vence en 1 hora y sirve una sola
+  vez. Sin correo verificado no se puede recuperar por correo: en ese caso
+  se borra a mano la fila `auth:<nombre>` en el dashboard de Upstash y
+  la persona crea su cuenta otra vez.
+- **Ajustes → Mi correo** permite cambiarlo (pide la clave actual). El
+  correo nuevo queda pendiente hasta que se confirme; mientras tanto el
+  anterior sigue sirviendo para recuperar la clave.
+- **Ajustes → Mi clave** cambia la clave (pide la actual).
+
+### Envío de correos (Gmail)
+
+Los correos salen de una cuenta de Gmail con una *contraseña de
+aplicación*:
+
+1. En la cuenta de Google que va a enviar (puede ser una nueva solo para
+   la app), activa la **verificación en 2 pasos**.
+2. Entra a <https://myaccount.google.com/apppasswords>, crea una con
+   nombre "Plan de dos" y copia las 16 letras.
+3. En Vercel → Settings → Environment Variables agrega:
+   - `GMAIL_USER` → la dirección de Gmail que envía.
+   - `GMAIL_APP_PASSWORD` → las 16 letras (márcala como **Sensitive**).
+4. Vuelve a desplegar para que tome las variables.
+
+Opcional: `APP_URL` (ej. `https://tu-app.vercel.app`) fija el dominio
+de los enlaces de los correos; si no está, se usa el dominio desde donde
+se abrió la app. Para usar otro proveedor por SMTP en vez de Gmail:
+`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` y `MAIL_FROM`.
 
 ## Notificaciones
 

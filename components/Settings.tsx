@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { PEOPLE, TOGETHER_SINCE } from "@/config";
-import type { PointsData } from "./types";
+import type { Account, PointsData } from "./types";
 import { api } from "./api";
 import { Avatar, Button, ConfirmDialog, Icon, Modal, PointsProgress } from "./ui";
 import { OTHER_PERSON } from "./planUtils";
@@ -65,13 +65,84 @@ export function ProfileMenu({ person, points, close, openRoulette, openSettings,
   );
 }
 
-export function SettingsScreen({ person, points, settings, push, close, onChanged }: {
+// Correo de la cuenta: el verificado es el que recibe los enlaces de
+// "¿Olvidaste tu clave?". Cambiarlo pide la clave actual.
+function EmailSettings({ person, account, onChanged }: { person: string; account: Account | null; onChanged: (a: Account) => void }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    setMsg("");
+    setError("");
+    setBusy(true);
+    try {
+      const res = await api("/api/auth/email", "PATCH", { person, password, email });
+      onChanged(res);
+      setEmail("");
+      setPassword("");
+      if (res.emailSent === false) setError(res.emailError);
+      else setMsg(res.pendingEmail ? `Te enviamos un enlace a ${res.pendingEmail}. Ábrelo para confirmarlo.` : "Ese ya es tu correo verificado ✓");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resend() {
+    setMsg("");
+    setError("");
+    setBusy(true);
+    try {
+      await api("/api/auth/email", "POST", { person });
+      setMsg(`Listo, lo reenviamos a ${account?.pendingEmail}.`);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const hasAny = Boolean(account?.email || account?.pendingEmail);
+  return (
+    <section className="settings-section">
+      <div className="section-title"><Icon name="mail" /><div><strong>Mi correo</strong><small>Para recuperar tu clave</small></div></div>
+      <p className="email-status">
+        {account?.email && <>Verificado: <strong>{account.email}</strong>{account.pendingEmail ? " (se sigue usando hasta que confirmes el nuevo)" : ""}<br /></>}
+        {account?.pendingEmail && <>Esperando confirmación: <strong>{account.pendingEmail}</strong></>}
+        {!hasAny && "Todavía no tienes correo. Sin él no podemos ayudarte si olvidas tu clave."}
+      </p>
+      {account?.pendingEmail && (
+        <Button variant="ghost" className="full" onClick={resend} disabled={busy}>Reenviar el enlace</Button>
+      )}
+      <form onSubmit={save}>
+        <div className="password-fields">
+          <input type="email" placeholder={hasAny ? "Correo nuevo" : "tu@correo.com"} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
+          <input type="password" placeholder="Tu clave actual" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+        </div>
+        {error && <p className="form-error" style={{ margin: "0 0 10px" }}>{error}</p>}
+        {msg && <p className="form-success" style={{ margin: "0 0 10px" }}>{msg}</p>}
+        <Button type="submit" variant="secondary" className="full" disabled={busy}>
+          {busy ? "Un momento..." : hasAny ? "Cambiar mi correo" : "Vincular mi correo"}
+        </Button>
+      </form>
+    </section>
+  );
+}
+
+export function SettingsScreen({ person, points, settings, push, account, close, onChanged, onAccountChanged }: {
   person: string;
   points: PointsData | null;
   settings: { pointsPerCategory: number; dessertThreshold: number } | null;
   push: Push;
+  account: Account | null;
   close: () => void;
   onChanged: () => void;
+  onAccountChanged: (a: Account) => void;
 }) {
   const [draftPoints, setDraftPoints] = useState(String(settings?.pointsPerCategory ?? 10));
   const [draftGoal, setDraftGoal] = useState(String(settings?.dessertThreshold ?? 100));
@@ -188,6 +259,8 @@ export function SettingsScreen({ person, points, settings, push, close, onChange
           </section>
 
           <PushSettings push={push} />
+
+          <EmailSettings person={person} account={account} onChanged={onAccountChanged} />
 
           <section className="settings-section">
             <div className="section-title"><Icon name="heart" /><div><strong>Mi clave</strong><small>Para entrar como {person}</small></div></div>
