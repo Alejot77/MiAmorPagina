@@ -14,6 +14,9 @@ function themeClass(name: string) {
 type Mode = "checking" | "login" | "setup" | "link-email" | "notice";
 type Notice = { emoji: string; title: string; text: string; warning?: string; enter: boolean };
 
+// Los correos salen de una cuenta de Gmail nueva y a veces caen en spam.
+const SPAM_HINT = "📥 Si no te llega en unos minutos, revisa la carpeta de Spam o Correo no deseado y márcalo como «No es spam».";
+
 export default function Login({ onLogin }: { onLogin: (person: string) => void }) {
   const [pending, setPending] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>("checking");
@@ -132,6 +135,7 @@ export default function Login({ onLogin }: { onLogin: (person: string) => void }
             <span className="login-notice-emoji">{notice.emoji}</span>
             <p className="login-subtitle">{notice.title}</p>
             <p className="login-hint">{notice.text}</p>
+            {!notice.warning && <p className="login-spam">{SPAM_HINT}</p>}
             {notice.warning && <p className="login-error">{notice.warning}</p>}
             {notice.enter ? (
               <Button className={themeClass(pending)} onClick={() => onLogin(pending)}>Entrar</Button>

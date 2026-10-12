@@ -680,3 +680,4 @@ a.text-link { text-decoration: none; }
 .email-banner button { border: 0; background: var(--card-selected); color: var(--purple); font-weight: 700; font-size: 11px; border-radius: 10px; padding: 8px 10px; cursor: pointer; white-space: nowrap; }
 .email-status { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0 0 12px; }
 .email-status strong { color: var(--ink); }
+.login-spam { color: #e9d9a8; background: #1f1b12; border: 1px solid #3a3220; border-radius: 12px; padding: 10px 12px; font-size: 11px; line-height: 1.5; text-align: center; }

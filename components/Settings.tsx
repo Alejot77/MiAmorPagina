@@ -85,7 +85,7 @@ function EmailSettings({ person, account, onChanged }: { person: string; account
       setEmail("");
       setPassword("");
       if (res.emailSent === false) setError(res.emailError);
-      else setMsg(res.pendingEmail ? `Te enviamos un enlace a ${res.pendingEmail}. Ábrelo para confirmarlo.` : "Ese ya es tu correo verificado ✓");
+      else setMsg(res.pendingEmail ? `Te enviamos un enlace a ${res.pendingEmail}. Ábrelo para confirmarlo (si no lo ves, revisa la carpeta de Spam).` : "Ese ya es tu correo verificado ✓");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -99,7 +99,7 @@ function EmailSettings({ person, account, onChanged }: { person: string; account
     setBusy(true);
     try {
       await api("/api/auth/email", "POST", { person });
-      setMsg(`Listo, lo reenviamos a ${account?.pendingEmail}.`);
+      setMsg(`Listo, lo reenviamos a ${account?.pendingEmail}. Si no lo ves, revisa la carpeta de Spam.`);
     } catch (err: any) {
       setError(err.message);
     } finally {

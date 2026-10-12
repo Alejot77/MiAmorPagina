@@ -318,7 +318,7 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
               <span>✉️</span>
               {account.pendingEmail ? (
                 <>
-                  <p><strong>Confirma tu correo.</strong> {emailBannerMsg || `Te enviamos un enlace a ${account.pendingEmail}.`}</p>
+                  <p><strong>Confirma tu correo.</strong> {emailBannerMsg || `Te enviamos un enlace a ${account.pendingEmail}. Si no lo ves, revisa la carpeta de Spam.`}</p>
                   <button onClick={resendVerification}>Reenviar</button>
                 </>
               ) : (
