@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { PEOPLE, THEMES, TOGETHER_SINCE } from "@/config";
+import { PEOPLE, THEMES, TOGETHER_SINCE, themeInfo } from "@/config";
 import type { Account, PointsData } from "./types";
 import { api } from "./api";
 import { Avatar, Button, ConfirmDialog, Icon, Modal, PointsProgress } from "./ui";
 import { OTHER_PERSON } from "./planUtils";
-import { PushSettings, type Push } from "./PushPrompt";
+import { PushPanel, pushSummary, type Push } from "./PushPrompt";
 
 export function ProfileMenu({ person, points, close, openRoulette, openSettings, logout }: {
   person: string;
@@ -68,8 +68,8 @@ export function ProfileMenu({ person, points, close, openRoulette, openSettings,
 // Temas de color: cada tarjeta es una miniatura de la app con ese tema.
 function ThemePicker({ theme, onTheme }: { theme: string; onTheme: (id: string) => void }) {
   return (
-    <section className="settings-section">
-      <div className="section-title"><Icon name="sparkles" /><div><strong>Tema</strong><small>Solo cambia cómo ves la app tú</small></div></div>
+    <>
+      <p className="email-status">Solo cambia cómo ves la app tú.</p>
       <div className="theme-grid">
         {THEMES.map((t) => (
           <button key={t.id} className={`theme-option ${theme === t.id ? "selected" : ""}`} onClick={() => onTheme(t.id)} aria-pressed={theme === t.id}>
@@ -79,11 +79,39 @@ function ThemePicker({ theme, onTheme }: { theme: string; onTheme: (id: string) 
                 <b style={{ background: t.preview[3] }} />
               </i>
             </span>
-            <span className="theme-name">{t.name}{theme === t.id && <Icon name="check" size={13} />}</span>
+            <span className="theme-name">{t.name}</span>
+            {theme === t.id && <span className="theme-check"><Icon name="check" size={12} /></span>}
             <small>{t.dark ? "Oscuro" : "Claro"}</small>
           </button>
         ))}
       </div>
+    </>
+  );
+}
+
+// Bloque desplegable de Ajustes: el encabezado muestra un resumen y al
+// tocarlo se abre (solo uno abierto a la vez).
+function SettingsGroup({ icon, tone = "purple", title, summary, summaryOn, open, onToggle, children }: {
+  icon: ReactNode;
+  tone?: "purple" | "pink";
+  title: string;
+  summary: ReactNode;
+  summaryOn?: boolean;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <section className={`settings-section settings-group ${open ? "open" : ""}`}>
+      <button className="settings-group-head" onClick={onToggle} aria-expanded={open}>
+        <span className={`menu-icon ${tone}`}>{icon}</span>
+        <span>
+          <strong>{title}</strong>
+          <small className={summaryOn ? "on" : ""}>{summary}</small>
+        </span>
+        <i><Icon name="chevron" size={18} /></i>
+      </button>
+      <div className="settings-group-body"><div><div className="settings-group-inner">{children}</div></div></div>
     </section>
   );
 }
@@ -132,8 +160,7 @@ function EmailSettings({ person, account, onChanged }: { person: string; account
 
   const hasAny = Boolean(account?.email || account?.pendingEmail);
   return (
-    <section className="settings-section">
-      <div className="section-title"><Icon name="mail" /><div><strong>Mi correo</strong><small>Para recuperar tu clave</small></div></div>
+    <>
       <p className="email-status">
         {account?.email && <>Verificado: <strong>{account.email}</strong>{account.pendingEmail ? " (se sigue usando hasta que confirmes el nuevo)" : ""}<br /></>}
         {account?.pendingEmail && <>Esperando confirmación: <strong>{account.pendingEmail}</strong></>}
@@ -153,7 +180,7 @@ function EmailSettings({ person, account, onChanged }: { person: string; account
           {busy ? "Un momento..." : hasAny ? "Cambiar mi correo" : "Vincular mi correo"}
         </Button>
       </form>
-    </section>
+    </>
   );
 }
 
@@ -179,6 +206,8 @@ export function SettingsScreen({ person, points, settings, push, account, theme,
   const [pwMsg, setPwMsg] = useState("");
   const [pwError, setPwError] = useState("");
   const [error, setError] = useState("");
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const group = (id: string) => ({ open: openGroup === id, onToggle: () => setOpenGroup(openGroup === id ? null : id) });
 
   const goal = points?.threshold || 100;
   const perCategory = settings?.pointsPerCategory ?? 10;
@@ -273,24 +302,39 @@ export function SettingsScreen({ person, points, settings, push, account, theme,
             })}
           </section>
 
-          <ThemePicker theme={theme} onTheme={onTheme} />
+          <span className="settings-label">PREFERENCIAS</span>
 
-          <section className="settings-section">
-            <div className="section-title"><Icon name="sliders" /><div><strong>Configuración de puntos</strong><small>Ajusten sus propias reglas</small></div></div>
+          <SettingsGroup icon={<Icon name="sparkles" />} title="Tema" summary={`${themeInfo(theme).name} · ${themeInfo(theme).dark ? "oscuro" : "claro"}`} {...group("tema")}>
+            <ThemePicker theme={theme} onTheme={onTheme} />
+          </SettingsGroup>
+
+          <SettingsGroup icon="🔔" title="Avisos" summary={pushSummary(push).text} summaryOn={pushSummary(push).on} {...group("avisos")}>
+            <PushPanel push={push} />
+          </SettingsGroup>
+
+          <SettingsGroup icon={<Icon name="sliders" />} title="Reglas de puntos" summary={`${perCategory} pts por categoría · postre a los ${goal}`} {...group("puntos")}>
+            <p className="email-status">Ajusten sus propias reglas. Aplican para los dos.</p>
             <div className="number-settings">
               <label><span>Puntos por categoría agregada</span><input type="number" min="1" value={draftPoints} onChange={(e) => setDraftPoints(e.target.value)} /></label>
               <label><span>Puntos para ganar un postre</span><input type="number" min="1" value={draftGoal} onChange={(e) => setDraftGoal(e.target.value)} /></label>
             </div>
             {configError && <p className="form-error" style={{ margin: "0 0 10px" }}>{configError}</p>}
             <Button variant="secondary" className="full" onClick={saveConfig}>{configMsg || "Guardar configuración"}</Button>
-          </section>
+          </SettingsGroup>
 
-          <PushSettings push={push} />
+          <span className="settings-label">MI CUENTA</span>
 
-          <EmailSettings person={person} account={account} onChanged={onAccountChanged} />
+          <SettingsGroup
+            icon={<Icon name="mail" />}
+            title="Mi correo"
+            summary={account?.email ? account.email : account?.pendingEmail ? `Por confirmar: ${account.pendingEmail}` : "Sin correo vinculado"}
+            summaryOn={Boolean(account?.email)}
+            {...group("correo")}
+          >
+            <EmailSettings person={person} account={account} onChanged={onAccountChanged} />
+          </SettingsGroup>
 
-          <section className="settings-section">
-            <div className="section-title"><Icon name="heart" /><div><strong>Mi clave</strong><small>Para entrar como {person}</small></div></div>
+          <SettingsGroup icon={<Icon name="heart" />} title="Mi clave" summary={`Para entrar como ${person}`} {...group("clave")}>
             <form onSubmit={changePassword}>
               <div className="password-fields">
                 <input type="password" placeholder="Clave actual" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} required />
@@ -301,13 +345,12 @@ export function SettingsScreen({ person, points, settings, push, account, theme,
               {pwMsg && <p className="form-success" style={{ margin: "0 0 10px" }}>{pwMsg}</p>}
               <Button type="submit" variant="secondary" className="full">Cambiar mi clave</Button>
             </form>
-          </section>
+          </SettingsGroup>
 
-          <section className="settings-section reset-section">
-            <strong>Reiniciar progreso</strong>
-            <p>Estas acciones no se pueden deshacer.</p>
+          <SettingsGroup icon={<Icon name="trash" />} tone="pink" title="Reiniciar progreso" summary="Volver los puntos a 0" {...group("reiniciar")}>
+            <p className="email-status">Estas acciones no se pueden deshacer. Los postres ya ganados se mantienen.</p>
             {PEOPLE.map((p) => <button key={p} className="destructive-link" onClick={() => setConfirmPerson(p)}>Reiniciar puntos de {p}</button>)}
-          </section>
+          </SettingsGroup>
         </main>
         {confirmPerson && (
           <ConfirmDialog

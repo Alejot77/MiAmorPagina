@@ -129,10 +129,20 @@ export default function PushPrompt({ push, open, onClose }: { push: Push; open: 
   );
 }
 
-// Sección "Avisos" de Ajustes: siempre dice en qué estado están los avisos
-// en ESTE dispositivo y ofrece lo que corresponda (activar, desactivar,
-// instalar la app o desbloquearlos).
-export function PushSettings({ push }: { push: Push }) {
+// Resumen corto del estado de los avisos en ESTE dispositivo.
+export function pushSummary(push: Push): { text: string; on: boolean } {
+  if (!push.configured) return { text: "Sin configurar en el servidor", on: false };
+  if (push.needsInstall) return { text: "Instala la app para activarlos", on: false };
+  if (!push.supported) return { text: "No disponibles en este navegador", on: false };
+  if (push.subscribed) return { text: "Activados en este celular", on: true };
+  if (push.permission === "denied") return { text: "Bloqueados en este celular", on: false };
+  return { text: "Desactivados en este celular", on: false };
+}
+
+// Contenido de la sección "Avisos" de Ajustes: siempre dice en qué estado
+// están en ESTE dispositivo y ofrece lo que corresponda (activar,
+// desactivar, instalar la app o desbloquearlos).
+export function PushPanel({ push }: { push: Push }) {
   let status: string;
   let extra = null;
   let toggle = false;
@@ -146,26 +156,26 @@ export function PushSettings({ push }: { push: Push }) {
   } else if (!push.supported) {
     status = "Este navegador no permite avisos. Ábrela en Chrome (Android) o en Safari (iPhone) en vez de dentro de otra app.";
   } else if (push.subscribed) {
-    status = "Activados en este dispositivo";
+    status = "Te avisamos cuando tu amor cree un plan, vote o esté listo el resumen del mes.";
     toggle = true;
   } else if (push.permission === "denied") {
-    status = `Bloqueados en este dispositivo. ${permissionHelp()}`;
+    status = `Están bloqueados en este celular. ${permissionHelp()}`;
     action = (
       <Button variant="secondary" className="full" onClick={push.subscribe} disabled={push.loading}>
         {push.loading ? "Activando..." : "Ya los permití, activar"}
       </Button>
     );
   } else {
-    status = "Desactivados. Actívalos para enterarte cuando tu amor cree un plan o vote.";
+    status = "Actívalos para enterarte cuando tu amor cree un plan, vote o esté listo el resumen del mes.";
     toggle = true;
   }
 
   return (
-    <section className="settings-section">
-      <div className="notification-row">
-        <span className="menu-icon purple">🔔</span>
-        <div><strong>Avisos</strong><small>{status}</small></div>
-        {toggle && (
+    <>
+      <p className="email-status">{status}</p>
+      {toggle && (
+        <div className="toggle-row">
+          <span>Recibir avisos en este celular</span>
           <button
             className={`notification-toggle ${push.subscribed ? "on" : ""}`}
             onClick={push.subscribed ? push.unsubscribe : push.subscribe}
@@ -174,11 +184,11 @@ export function PushSettings({ push }: { push: Push }) {
           >
             <i />
           </button>
-        )}
-      </div>
+        </div>
+      )}
       {extra}
-      {action && <div style={{ marginTop: 12 }}>{action}</div>}
+      {action}
       {push.error && <p className="form-error push-error" style={{ margin: "10px 0 0" }}>{push.error}</p>}
-    </section>
+    </>
   );
 }
