@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PEOPLE, categoryInfo } from "@/config";
+import { PEOPLE, categoryInfo, defaultThemeFor } from "@/config";
 import { usePushNotifications } from "@/lib/usePushNotifications";
+import { applyTheme, rememberTheme, savedTheme } from "@/lib/useThemePerson";
 import type { Account, HistoryEntry, Place, Plan, PointsData, RecapList, VotesByPlan } from "./types";
 import { PhotosSection } from "./Photos";
 import { RecapStories, monthLabel } from "./Recap";
@@ -65,6 +66,7 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
   const [account, setAccount] = useState<Account | null>(null);
   const [recapList, setRecapList] = useState<RecapList | null>(null);
   const [recapSeenTick, setRecapSeenTick] = useState(0);
+  const [theme, setTheme] = useState(() => savedTheme(person) || defaultThemeFor(person));
   const [emailBannerMsg, setEmailBannerMsg] = useState("");
   const [error, setError] = useState("");
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
@@ -87,6 +89,18 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
       .catch(fail);
   const loadAccount = () => api<Account>(`/api/auth?person=${encodeURIComponent(person)}`).then(setAccount).catch(() => {});
   const loadRecap = () => api<RecapList>("/api/recap").then(setRecapList).catch(() => {});
+
+  // Tema guardado en la base (por si lo cambió en otro celular).
+  const showTheme = (id: string) => {
+    setTheme(id);
+    applyTheme(id);
+    rememberTheme(person, id);
+  };
+  const loadTheme = () => api<{ theme: string }>(`/api/theme?person=${encodeURIComponent(person)}`).then((j) => showTheme(j.theme)).catch(() => {});
+  function chooseTheme(id: string) {
+    showTheme(id);
+    api("/api/theme", "PUT", { person, theme: id }).catch(fail);
+  }
 
   // El aviso "Su resumen de X está listo" sale en el inicio hasta que lo abren.
   const recapSeenKey = (month: string) => `miamor_recap_seen_${month}`;
@@ -113,6 +127,7 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
     loadPlans();
     loadAccount();
     loadRecap();
+    loadTheme();
     loadHistory();
     loadPlaces();
     loadPoints();
@@ -453,7 +468,7 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
           />
         )}
         {overlay.type === "settings" && (
-          <SettingsScreen person={person} points={points} settings={settings} push={push} account={account} close={close} onChanged={loadPoints} onAccountChanged={(a) => { setAccount(a); setEmailBannerMsg(""); }} />
+          <SettingsScreen person={person} points={points} settings={settings} push={push} account={account} theme={theme} onTheme={chooseTheme} close={close} onChanged={loadPoints} onAccountChanged={(a) => { setAccount(a); setEmailBannerMsg(""); }} />
         )}
         {overlay.type === "roulette" && <Roulette places={places} initialOptions={overlay.options} close={close} />}
         {overlay.type === "recap" && <RecapStories month={overlay.month} close={close} />}

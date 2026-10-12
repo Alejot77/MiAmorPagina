@@ -61,3 +61,25 @@ export function placeGroupInfo(key) {
 // armo. Al llegar a DESSERT_THRESHOLD, el otro le debe un postre.
 export const POINTS_PER_CATEGORY = 10;
 export const DESSERT_THRESHOLD = 100;
+
+// Temas de color que cada persona puede elegir en Ajustes. `preview` pinta
+// la tarjeta de muestra; `meta` es el color de la barra del celular.
+export const THEMES = [
+  { id: "lila", name: "Lila", dark: false, meta: "#f8f5fc", preview: ["#f8f5fc", "#ffffff", "#7446d7", "#ef7096"] },
+  { id: "rosa", name: "Rosa", dark: false, meta: "#fdf6f8", preview: ["#fdf6f8", "#ffffff", "#d6457a", "#f4c878"] },
+  { id: "oceano", name: "Océano", dark: false, meta: "#f5f9fe", preview: ["#f5f9fe", "#ffffff", "#2f6fd6", "#9cc3f5"] },
+  { id: "lila-noche", name: "Lila noche", dark: true, meta: "#110d19", preview: ["#110d19", "#1d1727", "#a57cf5", "#f07fa3"] },
+  { id: "rojo-noche", name: "Rojo noche", dark: true, meta: "#150b0d", preview: ["#150b0d", "#221417", "#ef4f58", "#f0a95a"] },
+  { id: "azul-noche", name: "Azul noche", dark: true, meta: "#080d16", preview: ["#080d16", "#141d2b", "#5b9bf5", "#f0b45a"] },
+];
+
+// Tema de cada persona mientras no elija otro.
+export const DEFAULT_THEMES = { Stefanny: "lila", Alejandro: "rojo-noche" };
+
+export function themeInfo(id) {
+  return THEMES.find((t) => t.id === id) || THEMES[0];
+}
+
+export function defaultThemeFor(person) {
+  return DEFAULT_THEMES[person] || THEMES[0].id;
+}

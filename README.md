@@ -96,6 +96,15 @@ Configuración (una sola vez):
    largo al azar (marcado como Sensitive). Vercel lo manda al llamar el
    cron; sin él, el aviso del día 1 no sale (el resumen igual funciona).
 
+## Temas de color
+
+Cada persona elige su tema en **Ajustes → Tema** (Lila, Rosa, Océano,
+Lila noche, Rojo noche, Azul noche). Solo cambia cómo lo ve esa persona,
+se guarda en la base (`theme:<nombre>`) para que la siga en otros
+celulares y en el dispositivo para que abra sin parpadeo. Por defecto:
+Stefanny → Lila, Alejandro → Rojo noche. Los temas están en `THEMES`
+(config.js) y sus colores en `app/redesign.css` (`[data-theme=...]`).
+
 ## Notificaciones
 
 La app puede avisar por notificación push del celular/navegador cuando el

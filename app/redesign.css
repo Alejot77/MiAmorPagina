@@ -1,6 +1,6 @@
 /* Rediseno "Plan de dos" (portado de Figma Make). Los colores van en
-   variables para pintar el mismo diseno con el tema de cada persona:
-   lila/blanco por defecto (Stefanny) y negro/rojo para Alejandro. */
+   variables: :root es el tema "Lila" y cada [data-theme] lo repinta. El
+   tema lo elige cada persona en Ajustes (lista en THEMES de config.js). */
 :root {
   --ink: #292231;
   --muted: #796f82;
@@ -47,7 +47,8 @@
   --wheel-4: #c8b0f0;
 }
 
-:root[data-person="Alejandro"] {
+/* Rojo noche (oscuro) */
+:root[data-theme="rojo-noche"] {
   --ink: #f4e9ea;
   --muted: #b8999c;
   --muted-2: #8a6d70;
@@ -89,6 +90,152 @@
   --wheel-2: #8a2a30;
   --wheel-3: #f0a95a;
   --wheel-4: #5a2a30;
+  color-scheme: dark;
+}
+
+/* Rosa (claro) */
+:root[data-theme="rosa"] {
+  --ink: #2e2228;
+  --muted: #80707a;
+  --muted-2: #9a8a93;
+  --purple: #d6457a;
+  --purple-dark: #b02d5f;
+  --primary-start: #e45a8c;
+  --lavender: #fbe6ee;
+  --lavender-soft: #fdf6f8;
+  --line: #f1e1e7;
+  --track: #e6cfd8;
+  --card-selected: #fff8fa;
+  --neutral-bg: #f5eef1;
+  --primary-shadow: rgba(214, 69, 122, .24);
+  --focus-ring: rgba(214, 69, 122, .24);
+  --shadow: 0 16px 48px rgba(86, 43, 63, 0.11);
+  --page-outer: #f3e8ec;
+  --page-bg: radial-gradient(circle at 50% 0%, #fff 0, #f9edf1 62%, #f1e2e8 100%);
+  --art-a: #fadbe6;
+  --roulette-bg: radial-gradient(circle at 50% 42%, #fff 0, #fdeef3 55%, #f8dce6 100%);
+  --wheel-1: #d6457a;
+  --wheel-2: #f6b0c6;
+  --wheel-3: #f4c878;
+  --wheel-4: #e88fb0;
+}
+
+/* Océano (claro) */
+:root[data-theme="oceano"] {
+  --ink: #23293a;
+  --muted: #6d7686;
+  --muted-2: #8b93a1;
+  --purple: #2f6fd6;
+  --purple-dark: #1f54b0;
+  --primary-start: #4285e6;
+  --lavender: #e3eefc;
+  --lavender-soft: #f5f9fe;
+  --line: #e0e8f2;
+  --track: #cbd8e8;
+  --card-selected: #f7faff;
+  --neutral-bg: #edf1f6;
+  --primary-shadow: rgba(47, 111, 214, .24);
+  --focus-ring: rgba(47, 111, 214, .24);
+  --shadow: 0 16px 48px rgba(35, 54, 86, 0.11);
+  --page-outer: #e8eef5;
+  --page-bg: radial-gradient(circle at 50% 0%, #fff 0, #edf3fa 62%, #e2eaf3 100%);
+  --art-a: #dbe8fb;
+  --roulette-bg: radial-gradient(circle at 50% 42%, #fff 0, #eef4fd 55%, #dde9fa 100%);
+  --wheel-1: #2f6fd6;
+  --wheel-2: #9cc3f5;
+  --wheel-3: #f4c878;
+  --wheel-4: #f4a9bc;
+}
+
+/* Lila noche (oscuro) */
+:root[data-theme="lila-noche"] {
+  --ink: #efe9f7;
+  --muted: #a99cbc;
+  --muted-2: #7f7392;
+  --purple: #a57cf5;
+  --purple-dark: #6a3fd0;
+  --primary-start: #9a6cf0;
+  --lavender: #2a2140;
+  --lavender-soft: #110d19;
+  --line: #2c2440;
+  --track: #3a3052;
+  --surface: #17121f;
+  --card: #1d1727;
+  --card-selected: #261d36;
+  --neutral-bg: #221b2e;
+  --glass: rgba(23, 18, 31, .94);
+  --glass-soft: rgba(29, 23, 39, .85);
+  --pink-bg: #3a1a2a;
+  --pink-ink: #ff9ec0;
+  --amber: #e8a948;
+  --amber-bg: #3a2a12;
+  --amber-ink: #f0c070;
+  --green: #6cc49b;
+  --green-bg: #12301f;
+  --shadow: 0 16px 48px rgba(0, 0, 0, .45);
+  --primary-shadow: rgba(140, 90, 240, .35);
+  --focus-ring: rgba(165, 124, 245, .4);
+  --page-outer: #07050b;
+  --page-bg: radial-gradient(circle at 50% 0%, #241a38 0, #0f0b16 62%, #07050b 100%);
+  --art-a: #2e2348;
+  --art-b: #2c1a2b;
+  --art-c: #33261e;
+  --art-d: #2a1d18;
+  --art-peach: #33241c;
+  --art-cream: #2d271f;
+  --art-pink: #321b2a;
+  --art-blue: #1a2236;
+  --roulette-bg: radial-gradient(circle at 50% 42%, #2a2040 0, #161020 55%, #0b0810 100%);
+  --wheel-1: #9a6cf0;
+  --wheel-2: #f07fa3;
+  --wheel-3: #f0b45a;
+  --wheel-4: #4a3a75;
+  color-scheme: dark;
+}
+
+/* Azul noche (oscuro) */
+:root[data-theme="azul-noche"] {
+  --ink: #e8eef7;
+  --muted: #9aa8bd;
+  --muted-2: #6f7d93;
+  --purple: #5b9bf5;
+  --purple-dark: #2f66c8;
+  --primary-start: #4a8ef0;
+  --lavender: #1c2a40;
+  --lavender-soft: #080d16;
+  --line: #1e2a3d;
+  --track: #2a3a52;
+  --surface: #0f1622;
+  --card: #141d2b;
+  --card-selected: #1a2638;
+  --neutral-bg: #182233;
+  --glass: rgba(15, 22, 34, .94);
+  --glass-soft: rgba(20, 29, 43, .85);
+  --pink-bg: #3a1a2a;
+  --pink-ink: #ff9ec0;
+  --amber: #e8a948;
+  --amber-bg: #3a2a12;
+  --amber-ink: #f0c070;
+  --green: #6cc49b;
+  --green-bg: #12301f;
+  --shadow: 0 16px 48px rgba(0, 0, 0, .45);
+  --primary-shadow: rgba(74, 142, 240, .32);
+  --focus-ring: rgba(91, 155, 245, .4);
+  --page-outer: #04070c;
+  --page-bg: radial-gradient(circle at 50% 0%, #15233a 0, #0a111c 62%, #04070c 100%);
+  --art-a: #1c2a40;
+  --art-b: #2a1a26;
+  --art-c: #2e261d;
+  --art-d: #261c16;
+  --art-peach: #2e2219;
+  --art-cream: #29251d;
+  --art-pink: #2e1a26;
+  --art-blue: #182640;
+  --roulette-bg: radial-gradient(circle at 50% 42%, #1a2840 0, #0e1624 55%, #070b12 100%);
+  --wheel-1: #4a8ef0;
+  --wheel-2: #2a4a7a;
+  --wheel-3: #f0b45a;
+  --wheel-4: #f07fa3;
   color-scheme: dark;
 }
 
@@ -794,3 +941,16 @@ a.text-link { text-decoration: none; }
   .recap-big strong { font-size: 90px; }
   .recap-body h2 { font-size: 26px; }
 }
+
+/* Selector de temas (Ajustes) */
+.theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.theme-option { border: 1.5px solid var(--line); background: var(--card); border-radius: 14px; padding: 7px; display: flex; flex-direction: column; gap: 6px; text-align: left; cursor: pointer; min-width: 0; }
+.theme-option.selected { border-color: var(--purple); box-shadow: 0 0 0 3px var(--focus-ring); }
+.theme-swatch { height: 62px; border-radius: 10px; padding: 7px; display: flex; align-items: flex-end; border: 1px solid rgba(127, 127, 127, .2); }
+.theme-swatch i { flex: 1; height: 26px; border-radius: 8px; display: flex; align-items: center; gap: 5px; padding: 0 7px; }
+.theme-swatch b { display: block; height: 9px; border-radius: 6px; }
+.theme-swatch b:first-child { width: 26px; }
+.theme-swatch b:last-child { width: 9px; border-radius: 50%; }
+.theme-name { font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px; color: var(--ink); }
+.theme-name svg { color: var(--purple); flex: none; }
+.theme-option small { font-size: 10px; color: var(--muted); margin-top: -4px; }

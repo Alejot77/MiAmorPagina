@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { PEOPLE, TOGETHER_SINCE } from "@/config";
+import { PEOPLE, THEMES, TOGETHER_SINCE } from "@/config";
 import type { Account, PointsData } from "./types";
 import { api } from "./api";
 import { Avatar, Button, ConfirmDialog, Icon, Modal, PointsProgress } from "./ui";
@@ -51,7 +51,7 @@ export function ProfileMenu({ person, points, close, openRoulette, openSettings,
         </Link>
         <button onClick={openSettings}>
           <span className="menu-icon neutral"><Icon name="sliders" /></span>
-          <span><strong>Ajustes</strong><small>Puntos, avisos y tu clave</small></span>
+          <span><strong>Ajustes</strong><small>Tema, puntos, avisos y tu clave</small></span>
           <Icon name="chevron" />
         </button>
         <button onClick={logout}>
@@ -62,6 +62,29 @@ export function ProfileMenu({ person, points, close, openRoulette, openSettings,
       </div>
       <div className="profile-signature">Hecho con cariño para dos.</div>
     </Modal>
+  );
+}
+
+// Temas de color: cada tarjeta es una miniatura de la app con ese tema.
+function ThemePicker({ theme, onTheme }: { theme: string; onTheme: (id: string) => void }) {
+  return (
+    <section className="settings-section">
+      <div className="section-title"><Icon name="sparkles" /><div><strong>Tema</strong><small>Solo cambia cómo ves la app tú</small></div></div>
+      <div className="theme-grid">
+        {THEMES.map((t) => (
+          <button key={t.id} className={`theme-option ${theme === t.id ? "selected" : ""}`} onClick={() => onTheme(t.id)} aria-pressed={theme === t.id}>
+            <span className="theme-swatch" style={{ background: t.preview[0] }}>
+              <i style={{ background: t.preview[1] }}>
+                <b style={{ background: t.preview[2] }} />
+                <b style={{ background: t.preview[3] }} />
+              </i>
+            </span>
+            <span className="theme-name">{t.name}{theme === t.id && <Icon name="check" size={13} />}</span>
+            <small>{t.dark ? "Oscuro" : "Claro"}</small>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -134,15 +157,17 @@ function EmailSettings({ person, account, onChanged }: { person: string; account
   );
 }
 
-export function SettingsScreen({ person, points, settings, push, account, close, onChanged, onAccountChanged }: {
+export function SettingsScreen({ person, points, settings, push, account, theme, close, onChanged, onAccountChanged, onTheme }: {
   person: string;
   points: PointsData | null;
   settings: { pointsPerCategory: number; dessertThreshold: number } | null;
   push: Push;
   account: Account | null;
+  theme: string;
   close: () => void;
   onChanged: () => void;
   onAccountChanged: (a: Account) => void;
+  onTheme: (id: string) => void;
 }) {
   const [draftPoints, setDraftPoints] = useState(String(settings?.pointsPerCategory ?? 10));
   const [draftGoal, setDraftGoal] = useState(String(settings?.dessertThreshold ?? 100));
@@ -247,6 +272,8 @@ export function SettingsScreen({ person, points, settings, push, account, close,
               );
             })}
           </section>
+
+          <ThemePicker theme={theme} onTheme={onTheme} />
 
           <section className="settings-section">
             <div className="section-title"><Icon name="sliders" /><div><strong>Configuración de puntos</strong><small>Ajusten sus propias reglas</small></div></div>
