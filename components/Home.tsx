@@ -6,7 +6,7 @@ import type { Option, Place, Plan, PlanVotes, Step, StepVotes, VotesByPlan } fro
 import { Avatar, Button, Icon, Pill } from "./ui";
 import {
   categoryTitle, dayMonthUpper, generatedStep, isPlanComplete, optionEmoji, rangeLabel,
-  rootSteps, stepResult, terminalStep, upcomingSaturday, weekdayUpper, addDays,
+  rootSteps, stepResult, terminalStep, todayStr, upcomingSaturday, weekdayUpper, addDays,
 } from "./planUtils";
 
 export type HomeActions = {
@@ -16,6 +16,7 @@ export type HomeActions = {
   addCategory: (plan: Plan) => void;
   openPlace: (placeId: string) => void;
   roulette: (options: string[]) => void;
+  photos: (plan: Plan) => void;
 };
 
 function VoteStatus({ votes, person }: { votes: StepVotes; person: string }) {
@@ -177,6 +178,9 @@ function DayPlan({ plan, votes, person, places, actions }: { plan: Plan; votes: 
           <span>· {dayMonthUpper(plan.weekend)}</span>
           <i className={collapsed ? "" : "expanded"}><Icon name="chevron" size={18} /></i>
         </button>
+        {plan.weekend <= todayStr() && (
+          <button className="day-actions" onClick={() => actions.photos(plan)} aria-label="Fotos del día"><Icon name="camera" /></button>
+        )}
         <button className="day-actions" onClick={() => actions.planActions(plan)} aria-label="Opciones del plan"><Icon name="dots" /></button>
       </div>
       <div className={`day-accordion ${collapsed ? "collapsed" : ""}`}>

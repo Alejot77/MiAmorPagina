@@ -52,3 +52,12 @@ export type Account = {
   emailVerified: boolean;
   pendingEmail: string | null; // esperando el enlace de confirmacion
 };
+
+export type Photo = { id: string; url: string; by: string; at: string; w: number | null; h: number | null };
+
+// Resumen del mes.
+export type RecapEntry = { plan: Plan; votes: PlanVotes; photos: Photo[] };
+export type RecapList = {
+  months: { month: string; plans: number; photos: number }[];
+  upcoming: { month: string; plans: number; opensOn: string } | null;
+};

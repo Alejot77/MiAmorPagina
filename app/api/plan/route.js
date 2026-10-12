@@ -3,6 +3,7 @@ import { kv } from "@/lib/kv";
 import { PEOPLE, categoryInfo, FOOD_TYPES } from "@/config";
 import { getSettings } from "@/lib/settings";
 import { sendPushToPerson, otherPerson } from "@/lib/push";
+import { deletePlanPhotos } from "@/lib/photos";
 import { loadActivePlans } from "@/lib/planWindow";
 
 export const dynamic = "force-dynamic";
@@ -255,6 +256,7 @@ export async function DELETE(request) {
       await kv.del(`votes:${planId}:${step.id}`);
     }
   }
+  await deletePlanPhotos(planId);
 
   const { plans, votes } = await loadActivePlans();
   return NextResponse.json({ plans, votes });

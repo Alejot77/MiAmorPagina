@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PEOPLE, categoryInfo } from "@/config";
 import { usePushNotifications } from "@/lib/usePushNotifications";
-import type { Account, HistoryEntry, Place, Plan, PointsData, VotesByPlan } from "./types";
+import type { Account, HistoryEntry, Place, Plan, PointsData, RecapList, VotesByPlan } from "./types";
+import { PhotosSection } from "./Photos";
+import { RecapStories, monthLabel } from "./Recap";
 import { api } from "./api";
 import { Avatar, Button, ConfirmDialog, Icon, Modal, SheetHeader, type IconName } from "./ui";
 import { OTHER_PERSON, generatedStep, longDate, stepResult } from "./planUtils";
@@ -31,7 +33,9 @@ type Overlay =
   | { type: "planActions"; planId: string }
   | { type: "place"; placeId: string }
   | { type: "placeForm"; placeId?: string }
-  | { type: "memory"; planId: string };
+  | { type: "memory"; planId: string }
+  | { type: "photos"; planId: string }
+  | { type: "recap"; month: string };
 type Flow = { mode: "create" | "edit" | "add"; planId?: string; repeatFrom?: Plan; presetDate?: string };
 type Toast = { categories: string[]; earned: number; reachedGoal: boolean };
 
@@ -59,6 +63,8 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
   const [settings, setSettings] = useState<{ pointsPerCategory: number; dessertThreshold: number } | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
+  const [recapList, setRecapList] = useState<RecapList | null>(null);
+  const [recapSeenTick, setRecapSeenTick] = useState(0);
   const [emailBannerMsg, setEmailBannerMsg] = useState("");
   const [error, setError] = useState("");
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
@@ -80,6 +86,19 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
       })
       .catch(fail);
   const loadAccount = () => api<Account>(`/api/auth?person=${encodeURIComponent(person)}`).then(setAccount).catch(() => {});
+  const loadRecap = () => api<RecapList>("/api/recap").then(setRecapList).catch(() => {});
+
+  // El aviso "Su resumen de X está listo" sale en el inicio hasta que lo abren.
+  const recapSeenKey = (month: string) => `miamor_recap_seen_${month}`;
+  function openRecap(month: string) {
+    try {
+      localStorage.setItem(recapSeenKey(month), "1");
+    } catch {
+      // se ignora
+    }
+    setRecapSeenTick((t) => t + 1);
+    setOverlay({ type: "recap", month });
+  }
 
   async function resendVerification() {
     try {
@@ -93,6 +112,7 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
   useEffect(() => {
     loadPlans();
     loadAccount();
+    loadRecap();
     loadHistory();
     loadPlaces();
     loadPoints();
@@ -102,6 +122,12 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
       } catch {
         setOverlay({ type: "flower" });
       }
+    }
+    // El aviso del dia 1 abre la app en /?recap=2026-10.
+    const recapMonth = new URLSearchParams(window.location.search).get("recap");
+    if (recapMonth && /^\d{4}-\d{2}$/.test(recapMonth)) {
+      openRecap(recapMonth);
+      window.history.replaceState(null, "", "/");
     }
   }, []);
 
@@ -122,6 +148,7 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
     addCategory: (plan) => setFlow({ mode: "add", planId: plan.id }),
     openPlace: (placeId) => setOverlay({ type: "place", placeId }),
     roulette: (options) => setOverlay({ type: "roulette", options }),
+    photos: (plan) => setOverlay({ type: "photos", planId: plan.id }),
   };
 
   async function submitVote(planId: string, stepId: string, optionId: string) {
@@ -244,6 +271,11 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
         <Modal close={close}>
           <SheetHeader eyebrow="ESTE DÍA" title={longDate(plan.weekend)} close={close} />
           <div className="menu-list">
+            <button onClick={() => setOverlay({ type: "photos", planId: plan.id })}>
+              <span className="menu-icon pink"><Icon name="camera" /></span>
+              <span><strong>Fotos del día</strong><small>Para el resumen del mes</small></span>
+              <Icon name="chevron" />
+            </button>
             <button onClick={() => { close(); setFlow({ mode: "add", planId: plan.id }); }}>
               <span className="menu-icon purple"><Icon name="plus" /></span>
               <span><strong>Agregar una categoría</strong><small>Sumar otra decisión a este día</small></span>
@@ -256,7 +288,7 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
             </button>
             <button onClick={() => setDeletePlanId(plan.id)}>
               <span className="menu-icon pink"><Icon name="trash" /></span>
-              <span><strong>Eliminar el plan</strong><small>Se borran sus votos</small></span>
+              <span><strong>Eliminar el plan</strong><small>Se borran sus votos y fotos</small></span>
               <Icon name="chevron" />
             </button>
           </div>
@@ -296,7 +328,33 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
         />
       );
     }
+  } else if (overlay.type === "photos") {
+    const plan = findPlan(overlay.planId) || history.find((e) => e.plan.id === overlay.planId)?.plan;
+    if (plan) {
+      sheet = (
+        <Modal close={() => { close(); loadRecap(); }}>
+          <SheetHeader eyebrow="FOTOS DEL DÍA" title={longDate(plan.weekend)} close={() => { close(); loadRecap(); }} />
+          <PhotosSection planId={plan.id} person={person} hint="Suban las fotos de este día: aparecen en el resumen del mes." />
+        </Modal>
+      );
+    }
   }
+
+  // Resumen recien abierto (el mes pasado) que todavia no han visto.
+  const newRecap = (() => {
+    const latest = recapList?.months[0];
+    if (!latest || recapSeenTick < 0) return null;
+    const now = new Date();
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+    if (latest.month !== prevMonth) return null;
+    try {
+      if (localStorage.getItem(recapSeenKey(latest.month))) return null;
+    } catch {
+      return null;
+    }
+    return latest;
+  })();
 
   const flowPlan = flow?.planId ? findPlan(flow.planId) : undefined;
   const other = OTHER_PERSON(person);
@@ -311,6 +369,16 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
           </div>
           <button className="icon-button" onClick={() => setOverlay({ type: "menu" })} aria-label="Abrir menú"><Icon name="dots" /></button>
         </header>
+
+        {tab === "home" && newRecap && (
+          <div style={{ padding: "14px 20px 0" }}>
+            <button className="recap-banner" onClick={() => openRecap(newRecap.month)}>
+              <span>🎁</span>
+              <span><strong>Su resumen de {monthLabel(newRecap.month)} está listo</strong><small>Salidas, comidas, planes y fotos del mes</small></span>
+              <Icon name="chevron" />
+            </button>
+          </div>
+        )}
 
         {account && !account.emailVerified && (
           <div style={{ padding: "14px 20px 0" }}>
@@ -352,7 +420,9 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
           />
         )}
         {tab === "places" && <Places places={places} onOpen={(id) => setOverlay({ type: "place", placeId: id })} onAdd={() => setOverlay({ type: "placeForm" })} />}
-        {tab === "history" && <History entries={history} onOpen={(planId) => setOverlay({ type: "memory", planId })} />}
+        {tab === "history" && (
+          <History entries={history} onOpen={(planId) => setOverlay({ type: "memory", planId })} recap={recapList} onOpenRecap={openRecap} />
+        )}
 
         <nav className="bottom-nav" aria-label="Navegación principal">
           {navItems.slice(0, 2).map(navButton)}
@@ -386,6 +456,7 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
           <SettingsScreen person={person} points={points} settings={settings} push={push} account={account} close={close} onChanged={loadPoints} onAccountChanged={(a) => { setAccount(a); setEmailBannerMsg(""); }} />
         )}
         {overlay.type === "roulette" && <Roulette places={places} initialOptions={overlay.options} close={close} />}
+        {overlay.type === "recap" && <RecapStories month={overlay.month} close={close} />}
         {overlay.type === "flower" && (
           <Modal close={dismissFlower}>
             <div className="flower-sheet">
@@ -402,7 +473,7 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
         {deletePlanId && (
           <ConfirmDialog
             title="¿Eliminar este plan?"
-            message="Se borran el plan y todos sus votos. No se puede deshacer."
+            message="Se borran el plan, sus votos y sus fotos. No se puede deshacer."
             confirmLabel="Eliminar plan"
             busy={deleting}
             onConfirm={deletePlan}

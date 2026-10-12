@@ -72,6 +72,30 @@ de los enlaces de los correos; si no está, se usa el dominio desde donde
 se abrió la app. Para usar otro proveedor por SMTP en vez de Gmail:
 `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` y `MAIL_FROM`.
 
+## Fotos y resumen del mes
+
+Cada día que ya pasó tiene sus **fotos** (botón de cámara en el inicio, o
+"Fotos del día" en el menú ⋯ del día, o dentro del recuerdo en
+Historial). Se comprimen en el celular antes de subir (lado mayor
+1600 px, JPEG) y se guardan en **Vercel Blob** con una URL que no se
+puede adivinar. Hasta 40 fotos por plan; al borrar un plan se borran sus
+fotos.
+
+El **resumen del mes** (historias tipo Wrapped: salidas, dónde comieron,
+qué hicieron, qué tomaron, el recuerdo favorito, el photodump y datos
+curiosos) se abre el día 1 del mes siguiente (hora de Bogotá). Aparece
+en Historial y, mientras no lo abran, como aviso en el inicio. Un cron
+de Vercel (`vercel.json`, día 1 a las 9:00 a. m. de Bogotá) les manda la
+notificación "Su resumen de … está listo".
+
+Configuración (una sola vez):
+
+1. Vercel → **Storage** → **Create Database** → **Blob** → conéctalo al
+   proyecto. Eso agrega `BLOB_READ_WRITE_TOKEN` solo.
+2. Vercel → Settings → Environment Variables → `CRON_SECRET` con un texto
+   largo al azar (marcado como Sensitive). Vercel lo manda al llamar el
+   cron; sin él, el aviso del día 1 no sale (el resumen igual funciona).
+
 ## Notificaciones
 
 La app puede avisar por notificación push del celular/navegador cuando el

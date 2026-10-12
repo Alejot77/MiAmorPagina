@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { categoryInfo } from "@/config";
-import type { HistoryEntry, Plan, PlanVotes } from "./types";
+import type { HistoryEntry, Plan, PlanVotes, RecapList } from "./types";
+import { PhotosSection } from "./Photos";
+import { RecapCards } from "./Recap";
 import { api } from "./api";
 import { Button, ConfirmDialog, Icon, Modal, Pill } from "./ui";
 import { categoryTitle, dayMonthUpper, memoryTitle, monthUpper, parseDate, rootSteps, stepResult, terminalStep, weekdayUpper } from "./planUtils";
@@ -16,7 +18,12 @@ function decisions(plan: Plan, votes: PlanVotes) {
   });
 }
 
-export function History({ entries, onOpen }: { entries: HistoryEntry[]; onOpen: (planId: string) => void }) {
+export function History({ entries, onOpen, recap, onOpenRecap }: {
+  entries: HistoryEntry[];
+  onOpen: (planId: string) => void;
+  recap: RecapList | null;
+  onOpenRecap: (month: string) => void;
+}) {
   const sorted = [...entries].sort((a, b) => (a.plan.weekend < b.plan.weekend ? 1 : -1));
   const months: { key: string; label: string; items: HistoryEntry[] }[] = [];
   for (const e of sorted) {
@@ -34,6 +41,7 @@ export function History({ entries, onOpen }: { entries: HistoryEntry[]; onOpen: 
       <span className="eyebrow">NUESTRA HISTORIA</span>
       <h1>Fines para recordar</h1>
       <p className="lead">Los planes pasan. Los recuerdos se quedan.</p>
+      <RecapCards list={recap} onOpen={onOpenRecap} />
       {months.length === 0 && (
         <div className="empty-history">
           <strong>Todavía no hay recuerdos</strong>
@@ -147,6 +155,7 @@ export function MemoryDetail({ entry, person, close, onRepeat, onChanged, onDele
           ) : (
             plan.memoryNote && <blockquote>“{plan.memoryNote}”</blockquote>
           )}
+          <PhotosSection planId={plan.id} person={person} hint="Suban las fotos de este día: aparecen en el resumen del mes." />
           {error && <p className="form-error">{error}</p>}
           <Button className="full" onClick={() => onRepeat(plan)}><Icon name="sparkles" size={18} /> Repetir este finde</Button>
           {!editing && (
@@ -163,7 +172,7 @@ export function MemoryDetail({ entry, person, close, onRepeat, onChanged, onDele
       {confirm && (
         <ConfirmDialog
           title="¿Eliminar este recuerdo?"
-          message="Se borran el plan y sus votos. No se puede deshacer."
+          message="Se borran el plan, sus votos y sus fotos. No se puede deshacer."
           confirmLabel="Eliminar"
           busy={busy}
           onConfirm={remove}
