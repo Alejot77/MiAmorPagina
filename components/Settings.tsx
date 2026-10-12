@@ -1,69 +1,13 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { PEOPLE, THEMES, TOGETHER_SINCE, themeInfo } from "@/config";
+import { GROUP_NAME_MAX, PEOPLE, THEMES, TOGETHER_SINCE, themeInfo } from "@/config";
 import type { Account, PointsData } from "./types";
 import { api } from "./api";
-import { Avatar, Button, ConfirmDialog, Icon, Modal, PointsProgress } from "./ui";
+import { Avatar, Button, ConfirmDialog, Icon, PointsProgress } from "./ui";
 import { OTHER_PERSON } from "./planUtils";
 import { PushPanel, pushSummary, type Push } from "./PushPrompt";
-
-export function ProfileMenu({ person, points, close, openRoulette, openSettings, logout }: {
-  person: string;
-  points: PointsData | null;
-  close: () => void;
-  openRoulette: () => void;
-  openSettings: () => void;
-  logout: () => void;
-}) {
-  const mine = points?.points[person] || 0;
-  const goal = points?.threshold || 100;
-  const remaining = Math.max(0, goal - mine);
-  return (
-    <Modal close={close}>
-      <div className="profile-block personal-profile">
-        <div className="profile-current-user">
-          <Avatar person={person} />
-          <div><span className="eyebrow">CUENTA PERSONAL</span><h2>{person.toUpperCase()}</h2></div>
-          <span className="points-badge">🏆 {mine} pts</span>
-        </div>
-        <PointsProgress points={mine} goal={goal} person={person} />
-        <div className="points-caption">
-          <span>{mine} / {goal}</span>
-          <span>{remaining > 0 ? `${remaining} pts para tu próximo postre 🍰` : "¡Llegaste a la meta! 🍰"}</span>
-        </div>
-        <div className="relationship-note">
-          <span className="mini-pair">{PEOPLE.map((p) => <Avatar key={p} person={p} small />)}</span>
-          Planeando juntos desde {TOGETHER_SINCE} <span className="heart">♥</span>
-        </div>
-      </div>
-      <div className="menu-list">
-        <button onClick={openRoulette}>
-          <span className="menu-icon purple"><Icon name="roulette" /></span>
-          <span><strong>Ruleta</strong><small>Cuando decidir se pone difícil</small></span>
-          <Icon name="chevron" />
-        </button>
-        <Link href="/flores">
-          <span className="menu-icon pink"><Icon name="flower" /></span>
-          <span><strong>Flores</strong><small>Pequeños detalles entre ustedes</small></span>
-          <Icon name="chevron" />
-        </Link>
-        <button onClick={openSettings}>
-          <span className="menu-icon neutral"><Icon name="sliders" /></span>
-          <span><strong>Ajustes</strong><small>Tema, puntos, avisos y tu clave</small></span>
-          <Icon name="chevron" />
-        </button>
-        <button onClick={logout}>
-          <span className="menu-icon neutral"><Icon name="logout" /></span>
-          <span><strong>Cambiar de persona</strong><small>Salir de la cuenta de {person}</small></span>
-          <Icon name="chevron" />
-        </button>
-      </div>
-      <div className="profile-signature">Hecho con cariño para dos.</div>
-    </Modal>
-  );
-}
 
 // Temas de color: cada tarjeta es una miniatura de la app con ese tema.
 function ThemePicker({ theme, onTheme }: { theme: string; onTheme: (id: string) => void }) {
@@ -91,7 +35,8 @@ function ThemePicker({ theme, onTheme }: { theme: string; onTheme: (id: string) 
 
 // Bloque desplegable de Ajustes: el encabezado muestra un resumen y al
 // tocarlo se abre (solo uno abierto a la vez).
-function SettingsGroup({ icon, tone = "purple", title, summary, summaryOn, open, onToggle, children }: {
+function SettingsGroup({ id, icon, tone = "purple", title, summary, summaryOn, open, onToggle, children }: {
+  id?: string;
   icon: ReactNode;
   tone?: "purple" | "pink";
   title: string;
@@ -102,7 +47,7 @@ function SettingsGroup({ icon, tone = "purple", title, summary, summaryOn, open,
   children: ReactNode;
 }) {
   return (
-    <section className={`settings-section settings-group ${open ? "open" : ""}`}>
+    <section id={id ? `grupo-${id}` : undefined} className={`settings-section settings-group ${open ? "open" : ""}`}>
       <button className="settings-group-head" onClick={onToggle} aria-expanded={open}>
         <span className={`menu-icon ${tone}`}>{icon}</span>
         <span>
@@ -113,6 +58,45 @@ function SettingsGroup({ icon, tone = "purple", title, summary, summaryOn, open,
       </button>
       <div className="settings-group-body"><div><div className="settings-group-inner">{children}</div></div></div>
     </section>
+  );
+}
+
+// Nombre del grupo: lo ven los dos (encabezado y login).
+function GroupNameForm({ person, groupName, onGroupName }: { person: string; groupName: string; onGroupName: (name: string) => void }) {
+  const [name, setName] = useState(groupName);
+  const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => setName(groupName), [groupName]);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    setMsg("");
+    setError("");
+    setBusy(true);
+    try {
+      const res = await api<{ name: string }>("/api/group", "PUT", { person, name });
+      onGroupName(res.name);
+      setMsg("Nombre guardado ✓");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={save}>
+      <p className="email-status">Aparece arriba en la app y al entrar. Lo ven los dos.</p>
+      <div className="password-fields">
+        <input value={name} onChange={(e) => setName(e.target.value)} maxLength={GROUP_NAME_MAX} placeholder="Plan de dos" />
+      </div>
+      {error && <p className="form-error" style={{ margin: "0 0 10px" }}>{error}</p>}
+      {msg && <p className="form-success" style={{ margin: "0 0 10px" }}>{msg}</p>}
+      <Button type="submit" variant="secondary" className="full" disabled={busy || name.trim() === groupName}>
+        {busy ? "Guardando..." : "Guardar nombre"}
+      </Button>
+    </form>
   );
 }
 
@@ -184,17 +168,21 @@ function EmailSettings({ person, account, onChanged }: { person: string; account
   );
 }
 
-export function SettingsScreen({ person, points, settings, push, account, theme, close, onChanged, onAccountChanged, onTheme }: {
+// Pestaña "Cuenta": puntos de los dos y todos los ajustes en desplegables.
+export function AccountPage({ person, points, settings, push, account, theme, groupName, focus, onChanged, onAccountChanged, onTheme, onGroupName, onLogout }: {
   person: string;
   points: PointsData | null;
   settings: { pointsPerCategory: number; dessertThreshold: number } | null;
   push: Push;
   account: Account | null;
   theme: string;
-  close: () => void;
+  groupName: string;
+  focus?: { group: string; at: number } | null;
   onChanged: () => void;
   onAccountChanged: (a: Account) => void;
   onTheme: (id: string) => void;
+  onGroupName: (name: string) => void;
+  onLogout: () => void;
 }) {
   const [draftPoints, setDraftPoints] = useState(String(settings?.pointsPerCategory ?? 10));
   const [draftGoal, setDraftGoal] = useState(String(settings?.dessertThreshold ?? 100));
@@ -207,7 +195,14 @@ export function SettingsScreen({ person, points, settings, push, account, theme,
   const [pwError, setPwError] = useState("");
   const [error, setError] = useState("");
   const [openGroup, setOpenGroup] = useState<string | null>(null);
-  const group = (id: string) => ({ open: openGroup === id, onToggle: () => setOpenGroup(openGroup === id ? null : id) });
+  const group = (id: string) => ({ id, open: openGroup === id, onToggle: () => setOpenGroup(openGroup === id ? null : id) });
+
+  // Desde otra pantalla se puede pedir abrir un bloque (ej. "Vincular" correo).
+  useEffect(() => {
+    if (!focus) return;
+    setOpenGroup(focus.group);
+    window.setTimeout(() => document.getElementById(`grupo-${focus.group}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+  }, [focus?.at]);
 
   const goal = points?.threshold || 100;
   const perCategory = settings?.pointsPerCategory ?? 10;
@@ -263,22 +258,19 @@ export function SettingsScreen({ person, points, settings, push, account, theme,
   }
 
   return (
-    <Modal close={close} full>
-      <div className="settings-screen">
-        <header className="settings-header">
-          <button className="icon-button" onClick={close} aria-label="Volver"><Icon name="arrow" /></button>
-          <div><span className="eyebrow">AJUSTES</span><strong>Perfil y puntos</strong></div>
-          <span />
-        </header>
-        <main className="settings-content">
-          <section className="settings-intro">
-            <span className="step-emoji">🏆</span>
-            <h1>Perfil y puntos</h1>
-            <p>Cada categoría que agregas a un plan suma {perCategory} puntos. Al llegar a {goal}, el otro te invita un postre 🍰</p>
-          </section>
+    <main className="page account-page">
+      <span className="eyebrow">TU CUENTA</span>
+      <div className="account-hero">
+        <Avatar person={person} />
+        <div>
+          <h1>{person}</h1>
+          <p>Planeando juntos desde {TOGETHER_SINCE} <span className="heart">♥</span></p>
+        </div>
+      </div>
 
           {error && <p className="form-error">{error}</p>}
 
+          <span className="settings-label">PUNTOS</span>
           <section className="couple-points">
             {PEOPLE.map((p) => {
               const pts = points?.points[p] || 0;
@@ -304,6 +296,10 @@ export function SettingsScreen({ person, points, settings, push, account, theme,
 
           <span className="settings-label">PREFERENCIAS</span>
 
+          <SettingsGroup icon={<Icon name="edit" />} title="Nombre del grupo" summary={groupName} {...group("nombre")}>
+            <GroupNameForm person={person} groupName={groupName} onGroupName={onGroupName} />
+          </SettingsGroup>
+
           <SettingsGroup icon={<Icon name="sparkles" />} title="Tema" summary={`${themeInfo(theme).name} · ${themeInfo(theme).dark ? "oscuro" : "claro"}`} {...group("tema")}>
             <ThemePicker theme={theme} onTheme={onTheme} />
           </SettingsGroup>
@@ -313,7 +309,7 @@ export function SettingsScreen({ person, points, settings, push, account, theme,
           </SettingsGroup>
 
           <SettingsGroup icon={<Icon name="sliders" />} title="Reglas de puntos" summary={`${perCategory} pts por categoría · postre a los ${goal}`} {...group("puntos")}>
-            <p className="email-status">Ajusten sus propias reglas. Aplican para los dos.</p>
+            <p className="email-status">Cada categoría que agregas a un plan suma {perCategory} puntos. Al llegar a {goal}, el otro te invita un postre 🍰 Las reglas aplican para los dos.</p>
             <div className="number-settings">
               <label><span>Puntos por categoría agregada</span><input type="number" min="1" value={draftPoints} onChange={(e) => setDraftPoints(e.target.value)} /></label>
               <label><span>Puntos para ganar un postre</span><input type="number" min="1" value={draftGoal} onChange={(e) => setDraftGoal(e.target.value)} /></label>
@@ -351,7 +347,21 @@ export function SettingsScreen({ person, points, settings, push, account, theme,
             <p className="email-status">Estas acciones no se pueden deshacer. Los postres ya ganados se mantienen.</p>
             {PEOPLE.map((p) => <button key={p} className="destructive-link" onClick={() => setConfirmPerson(p)}>Reiniciar puntos de {p}</button>)}
           </SettingsGroup>
-        </main>
+
+          <span className="settings-label">MÁS</span>
+          <div className="menu-list account-links">
+            <Link href="/flores">
+              <span className="menu-icon pink"><Icon name="flower" /></span>
+              <span><strong>Flores</strong><small>Pequeños detalles entre ustedes</small></span>
+              <Icon name="chevron" />
+            </Link>
+            <button onClick={onLogout}>
+              <span className="menu-icon neutral"><Icon name="logout" /></span>
+              <span><strong>Cambiar de persona</strong><small>Salir de la cuenta de {person}</small></span>
+              <Icon name="chevron" />
+            </button>
+          </div>
+          <div className="profile-signature">Hecho con cariño para dos.</div>
         {confirmPerson && (
           <ConfirmDialog
             title={`¿Reiniciar los puntos de ${confirmPerson}?`}
@@ -362,7 +372,6 @@ export function SettingsScreen({ person, points, settings, push, account, theme,
             onCancel={() => setConfirmPerson(null)}
           />
         )}
-      </div>
-    </Modal>
+    </main>
   );
 }

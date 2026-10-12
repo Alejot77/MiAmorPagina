@@ -37,7 +37,7 @@ Edita [config.js](config.js) y cambia los valores de `PEOPLE`.
 La primera vez que alguien entra a su nombre, la app le pide **correo y
 clave**. Le llega un correo con un enlace para confirmar ese correo
 (vence en 24 horas). Las cuentas de antes del correo lo vinculan la
-siguiente vez que entran (o desde **Ajustes → Mi correo**); mientras no
+siguiente vez que entran (o desde **Cuenta → Mi correo**); mientras no
 esté confirmado, la app muestra un aviso para reenviar el enlace.
 
 La clave se guarda con hash (scrypt), nunca en texto plano. El correo
@@ -48,10 +48,10 @@ verificado es el único que sirve para recuperar la clave:
   vez. Sin correo verificado no se puede recuperar por correo: en ese caso
   se borra a mano la fila `auth:<nombre>` en el dashboard de Upstash y
   la persona crea su cuenta otra vez.
-- **Ajustes → Mi correo** permite cambiarlo (pide la clave actual). El
+- **Cuenta → Mi correo** permite cambiarlo (pide la clave actual). El
   correo nuevo queda pendiente hasta que se confirme; mientras tanto el
   anterior sigue sirviendo para recuperar la clave.
-- **Ajustes → Mi clave** cambia la clave (pide la actual).
+- **Cuenta → Mi clave** cambia la clave (pide la actual).
 
 ### Envío de correos (Gmail)
 
@@ -98,7 +98,7 @@ Configuración (una sola vez):
 
 ## Temas de color
 
-Cada persona elige su tema en **Ajustes → Tema** (Lila, Rosa, Océano,
+Cada persona elige su tema en **Cuenta → Tema** (Lila, Rosa, Océano,
 Lila noche, Rojo noche, Azul noche). Solo cambia cómo lo ve esa persona,
 se guarda en la base (`theme:<nombre>`) para que la siga en otros
 celulares y en el dispositivo para que abra sin parpadeo. Por defecto:
@@ -109,7 +109,7 @@ Stefanny → Lila, Alejandro → Rojo noche. Los temas están en `THEMES`
 
 La app puede avisar por notificación push del celular/navegador cuando el
 otro crea o edita un plan, o vota (se activan desde la ventana que aparece al
-entrar, o desde **Perfil → 🔔 Avisos**). Para que funcione hace falta configurar 3 variables de entorno
+entrar, o desde **Cuenta → Avisos**). Para que funcione hace falta configurar 3 variables de entorno
 en Vercel (**Settings → Environment Variables**):
 
 1. Genera un par de claves VAPID (una sola vez, se reutilizan siempre):

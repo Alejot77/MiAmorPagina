@@ -18,8 +18,11 @@ function statusText(plan: Plan, votes: PlanVotes, stepId: string) {
   return r.winners[0].name;
 }
 
-export default function CalendarScreen({ entries, onCreateForDate, onOpenActive, onOpenMemory }: {
+// `embedded`: va dentro de Historial (sin titulo de pagina y con el dia
+// elegido como tarjeta).
+export default function CalendarScreen({ entries, onCreateForDate, onOpenActive, onOpenMemory, embedded = false }: {
   entries: Entry[];
+  embedded?: boolean;
   onCreateForDate: (date: string) => void;
   onOpenActive: () => void;
   onOpenMemory: (planId: string) => void;
@@ -38,12 +41,13 @@ export default function CalendarScreen({ entries, onCreateForDate, onOpenActive,
   const planDates = new Set(entries.map((e) => e.plan.weekend));
   const dayEntries = entries.filter((e) => e.plan.weekend === selected);
   const categoryCount = dayEntries.reduce((n, e) => n + rootSteps(e.plan).length, 0);
+  const Wrapper = embedded ? "section" : "main";
 
   return (
-    <main className="page calendar-page">
-      <span className="eyebrow">NUESTRO TIEMPO</span>
+    <Wrapper className={embedded ? "calendar-embed" : "page calendar-page"}>
+      {!embedded && <span className="eyebrow">NUESTRO TIEMPO</span>}
       <div className="title-row">
-        <h1>{title}</h1>
+        {embedded ? <h2>{title}</h2> : <h1>{title}</h1>}
         <div>
           <button className="round-button" aria-label="Mes anterior" onClick={() => setMonthIndex(monthIndex - 1)}>‹</button>
           <button className="round-button" aria-label="Mes siguiente" onClick={() => setMonthIndex(monthIndex + 1)}>›</button>
@@ -64,8 +68,8 @@ export default function CalendarScreen({ entries, onCreateForDate, onOpenActive,
           })}
         </div>
       </div>
-      <section className="selected-date">
-        <div className="sheet-handle" />
+      <section className={embedded ? "selected-date embedded" : "selected-date"}>
+        {!embedded && <div className="sheet-handle" />}
         <div className="date-label">
           <div><span>{shortDayUpper(selected)}</span><strong>{parseDate(selected).getDate()}</strong></div>
           <div>
@@ -95,6 +99,6 @@ export default function CalendarScreen({ entries, onCreateForDate, onOpenActive,
           <Button variant="secondary" className="full" onClick={() => onCreateForDate(selected)}><Icon name="plus" size={17} /> Agregar algo</Button>
         ) : null}
       </section>
-    </main>
+    </Wrapper>
   );
 }

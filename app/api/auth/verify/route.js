@@ -12,7 +12,7 @@ export async function POST(request) {
   const { token } = (await request.json()) || {};
   const data = await peekToken(token, "verify");
   if (!data) {
-    return NextResponse.json({ error: "El enlace venció. Pide uno nuevo desde Ajustes." }, { status: 400 });
+    return NextResponse.json({ error: "El enlace venció. Pide uno nuevo desde la pestaña Cuenta." }, { status: 400 });
   }
   const ok = NextResponse.json({ ok: true, person: data.person, email: maskEmail(data.email) });
   const record = await getAuth(data.person);

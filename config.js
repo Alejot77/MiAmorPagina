@@ -83,3 +83,8 @@ export function themeInfo(id) {
 export function defaultThemeFor(person) {
   return DEFAULT_THEMES[person] || THEMES[0].id;
 }
+
+// Nombre del grupo (se ve en el encabezado y en el login). Lo pueden
+// cambiar los dos desde Cuenta.
+export const DEFAULT_GROUP_NAME = "Plan de dos";
+export const GROUP_NAME_MAX = 40;

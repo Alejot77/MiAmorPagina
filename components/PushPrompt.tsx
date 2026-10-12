@@ -95,7 +95,7 @@ export default function PushPrompt({ push, open, onClose }: { push: Push; open: 
     body = (
       <>
         <h2>Los avisos están bloqueados</h2>
-        <p>{permissionHelp()} Después vuelve a la app y actívalos desde Ajustes.</p>
+        <p>{permissionHelp()} Después vuelve a la app y actívalos desde la pestaña Cuenta.</p>
         <Button className="full" onClick={close}>Entendido</Button>
       </>
     );

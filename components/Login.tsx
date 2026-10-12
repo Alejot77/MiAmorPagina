@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { PEOPLE } from "@/config";
+import { useEffect, useState, type FormEvent } from "react";
+import { DEFAULT_GROUP_NAME, PEOPLE } from "@/config";
 import { api } from "./api";
 import { Avatar, Button } from "./ui";
 
@@ -26,6 +26,11 @@ export default function Login({ onLogin }: { onLogin: (person: string) => void }
   const [notice, setNotice] = useState<Notice | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [groupName, setGroupName] = useState(DEFAULT_GROUP_NAME);
+
+  useEffect(() => {
+    api<{ name: string }>("/api/group").then((j) => setGroupName(j.name)).catch(() => {});
+  }, []);
 
   async function choose(name: string) {
     setPending(name);
@@ -114,7 +119,7 @@ export default function Login({ onLogin }: { onLogin: (person: string) => void }
       <div className="login-card">
         <div className="avatar-pair">{PEOPLE.map((p) => <Avatar key={p} person={p} />)}</div>
         <span className="eyebrow">{PEOPLE.join(" + ").toUpperCase()}</span>
-        <h1>Plan de dos</h1>
+        <h1>{groupName}</h1>
 
         {!pending ? (
           <>

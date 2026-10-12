@@ -977,3 +977,32 @@ a.text-link { text-decoration: none; }
 .toggle-row .notification-toggle { flex: none; cursor: pointer; }
 .theme-check { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--purple); color: #fff; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0, 0, 0, .25); }
 .theme-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Encabezado con el nombre del grupo */
+.couple-mark .group-name { font: 700 19px var(--font-heading); color: var(--ink); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Calendario dentro de Historial */
+.calendar-embed { margin: 20px 0 8px; }
+.calendar-embed .title-row { align-items: center; margin: 0 0 12px; }
+.calendar-embed .title-row h2 { font-size: 24px; margin: 0; }
+.calendar-embed .round-button { width: 40px; height: 40px; font-size: 20px; }
+.selected-date.embedded { margin: 10px 0 0; min-height: 0; padding: 16px; border-radius: 22px; box-shadow: 0 9px 30px rgba(70, 50, 85, .06); }
+
+/* Pestaña Cuenta */
+.account-hero { display: flex; gap: 14px; align-items: center; margin: 6px 0 4px; }
+.account-hero > .avatar { width: 58px; height: 58px; font-size: 22px; }
+.account-hero h1 { font-size: 34px; margin: 0; }
+.account-hero p { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px; margin: 4px 0 0; flex-wrap: wrap; }
+.account-hero .heart { color: var(--pink); }
+.account-page .couple-points { margin-top: 8px; }
+.account-links { margin-top: 8px; border-top: 0; background: var(--card); border-radius: 18px; padding: 2px 14px; }
+.account-links > :first-child { border-top: 0; }
+
+/* Botón flotante de la ruleta */
+.roulette-fab { position: fixed; z-index: 34; right: max(16px, calc(50% - 240px + 16px)); bottom: calc(76px + env(safe-area-inset-bottom) + 16px); width: 54px; height: 54px; border-radius: 50%; border: 0; color: #fff; background: linear-gradient(135deg, var(--primary-start), var(--purple-dark)); box-shadow: 0 10px 24px var(--primary-shadow); display: grid; place-items: center; cursor: pointer; animation: fab-in .35s cubic-bezier(.2, .8, .2, 1) both; }
+.roulette-fab:active { transform: scale(.94); }
+@keyframes fab-in { from { opacity: 0; transform: scale(.6) rotate(-90deg); } }
+@media (min-width: 700px) {
+  .roulette-fab { bottom: calc(76px + 24px + 16px); }
+}
+.account-links > :last-child { border-bottom: 0; }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { categoryInfo } from "@/config";
 import type { HistoryEntry, Plan, PlanVotes, RecapList } from "./types";
 import { PhotosSection } from "./Photos";
@@ -18,8 +18,9 @@ function decisions(plan: Plan, votes: PlanVotes) {
   });
 }
 
-export function History({ entries, onOpen, recap, onOpenRecap }: {
+export function History({ entries, onOpen, recap, onOpenRecap, calendar }: {
   entries: HistoryEntry[];
+  calendar?: ReactNode;
   onOpen: (planId: string) => void;
   recap: RecapList | null;
   onOpenRecap: (month: string) => void;
@@ -41,6 +42,7 @@ export function History({ entries, onOpen, recap, onOpenRecap }: {
       <span className="eyebrow">NUESTRA HISTORIA</span>
       <h1>Fines para recordar</h1>
       <p className="lead">Los planes pasan. Los recuerdos se quedan.</p>
+      {calendar}
       <RecapCards list={recap} onOpen={onOpenRecap} />
       {months.length === 0 && (
         <div className="empty-history">

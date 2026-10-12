@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PEOPLE, categoryInfo, defaultThemeFor } from "@/config";
+import { DEFAULT_GROUP_NAME, PEOPLE, categoryInfo, defaultThemeFor } from "@/config";
 import { usePushNotifications } from "@/lib/usePushNotifications";
 import { applyTheme, rememberTheme, savedTheme } from "@/lib/useThemePerson";
 import type { Account, HistoryEntry, Place, Plan, PointsData, RecapList, VotesByPlan } from "./types";
@@ -17,15 +17,13 @@ import CreateFlow from "./CreateFlow";
 import CalendarScreen from "./CalendarScreen";
 import { PlaceDetail, PlaceForm, Places } from "./Places";
 import { History, MemoryDetail } from "./History";
-import { ProfileMenu, SettingsScreen } from "./Settings";
+import { AccountPage } from "./Settings";
 import Roulette from "./Roulette";
 import PushPrompt, { useAutoPushPrompt, type Push } from "./PushPrompt";
 
-type Tab = "home" | "calendar" | "places" | "history";
+type Tab = "home" | "places" | "history" | "account";
 type Overlay =
   | { type: "none" }
-  | { type: "menu" }
-  | { type: "settings" }
   | { type: "flower" }
   | { type: "roulette"; options?: string[] }
   | { type: "vote"; planId: string; stepId: string }
@@ -66,6 +64,8 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
   const [account, setAccount] = useState<Account | null>(null);
   const [recapList, setRecapList] = useState<RecapList | null>(null);
   const [recapSeenTick, setRecapSeenTick] = useState(0);
+  const [groupName, setGroupName] = useState(DEFAULT_GROUP_NAME);
+  const [accountFocus, setAccountFocus] = useState<{ group: string; at: number } | null>(null);
   const [theme, setTheme] = useState(() => savedTheme(person) || defaultThemeFor(person));
   const [emailBannerMsg, setEmailBannerMsg] = useState("");
   const [error, setError] = useState("");
@@ -89,6 +89,7 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
       .catch(fail);
   const loadAccount = () => api<Account>(`/api/auth?person=${encodeURIComponent(person)}`).then(setAccount).catch(() => {});
   const loadRecap = () => api<RecapList>("/api/recap").then(setRecapList).catch(() => {});
+  const loadGroupName = () => api<{ name: string }>("/api/group").then((j) => setGroupName(j.name)).catch(() => {});
 
   // Tema guardado en la base (por si lo cambió en otro celular).
   const showTheme = (id: string) => {
@@ -128,6 +129,7 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
     loadAccount();
     loadRecap();
     loadTheme();
+    loadGroupName();
     loadHistory();
     loadPlaces();
     loadPoints();
@@ -145,6 +147,10 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
       window.history.replaceState(null, "", "/");
     }
   }, []);
+
+  useEffect(() => {
+    document.title = groupName;
+  }, [groupName]);
 
   useEffect(() => {
     if (!toast) return;
@@ -232,9 +238,9 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
   const latestFavorite = [...history].filter((e) => e.plan.favorite).sort((a, b) => (a.plan.weekend < b.plan.weekend ? 1 : -1))[0];
   const navItems: { id: Tab; icon: IconName; label: string }[] = [
     { id: "home", icon: "home", label: "Finde" },
-    { id: "calendar", icon: "calendar", label: "Calendario" },
     { id: "places", icon: "pin", label: "Sitios" },
     { id: "history", icon: "clock", label: "Historial" },
+    { id: "account", icon: "user", label: "Cuenta" },
   ];
   const navButton = (item: (typeof navItems)[number]) => (
     <button key={item.id} className={tab === item.id ? "nav-item active" : "nav-item"} onClick={() => changeTab(item.id)}>
@@ -380,9 +386,8 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
         <header className="app-header">
           <div className="couple-mark">
             <div className="avatar-pair">{PEOPLE.map((p) => <Avatar key={p} person={p} />)}</div>
-            <div><span className="eyebrow">{PEOPLE.join(" + ").toUpperCase()}</span><strong>Plan de dos</strong></div>
+            <strong className="group-name">{groupName}</strong>
           </div>
-          <button className="icon-button" onClick={() => setOverlay({ type: "menu" })} aria-label="Abrir menú"><Icon name="dots" /></button>
         </header>
 
         {tab === "home" && newRecap && (
@@ -407,7 +412,7 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
               ) : (
                 <>
                   <p><strong>Vincula tu correo</strong> para poder recuperar tu clave si la olvidas.</p>
-                  <button onClick={() => setOverlay({ type: "settings" })}>Vincular</button>
+                  <button onClick={() => { changeTab("account"); setAccountFocus({ group: "correo", at: Date.now() }); }}>Vincular</button>
                 </>
               )}
             </div>
@@ -426,17 +431,46 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
               ? <Home plans={plans} votes={votes} person={person} places={places} actions={actions} />
               : <EmptyHome onCreate={() => setFlow({ mode: "create" })} canRepeat={Boolean(latestFavorite)} onRepeat={() => latestFavorite && setFlow({ mode: "create", repeatFrom: latestFavorite.plan })} />
         )}
-        {tab === "calendar" && (
-          <CalendarScreen
-            entries={[...plans.map((p) => ({ plan: p, votes: votes[p.id] || {}, active: true })), ...history.map((e) => ({ ...e, active: false }))]}
-            onCreateForDate={(date) => setFlow({ mode: "create", presetDate: date })}
-            onOpenActive={() => changeTab("home")}
-            onOpenMemory={(planId) => setOverlay({ type: "memory", planId })}
+        {tab === "places" && <Places places={places} onOpen={(id) => setOverlay({ type: "place", placeId: id })} onAdd={() => setOverlay({ type: "placeForm" })} />}
+        {tab === "account" && (
+          <AccountPage
+            person={person}
+            points={points}
+            settings={settings}
+            push={push}
+            account={account}
+            theme={theme}
+            groupName={groupName}
+            focus={accountFocus}
+            onTheme={chooseTheme}
+            onGroupName={setGroupName}
+            onChanged={loadPoints}
+            onAccountChanged={(a) => { setAccount(a); setEmailBannerMsg(""); }}
+            onLogout={onLogout}
           />
         )}
-        {tab === "places" && <Places places={places} onOpen={(id) => setOverlay({ type: "place", placeId: id })} onAdd={() => setOverlay({ type: "placeForm" })} />}
         {tab === "history" && (
-          <History entries={history} onOpen={(planId) => setOverlay({ type: "memory", planId })} recap={recapList} onOpenRecap={openRecap} />
+          <History
+            entries={history}
+            onOpen={(planId) => setOverlay({ type: "memory", planId })}
+            recap={recapList}
+            onOpenRecap={openRecap}
+            calendar={
+              <CalendarScreen
+                embedded
+                entries={[...plans.map((p) => ({ plan: p, votes: votes[p.id] || {}, active: true })), ...history.map((e) => ({ ...e, active: false }))]}
+                onCreateForDate={(date) => setFlow({ mode: "create", presetDate: date })}
+                onOpenActive={() => changeTab("home")}
+                onOpenMemory={(planId) => setOverlay({ type: "memory", planId })}
+              />
+            }
+          />
+        )}
+
+        {tab !== "account" && !flow && (
+          <button className="roulette-fab" onClick={() => setOverlay({ type: "roulette" })} aria-label="Abrir la ruleta">
+            <Icon name="roulette" size={24} />
+          </button>
         )}
 
         <nav className="bottom-nav" aria-label="Navegación principal">
@@ -459,17 +493,6 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
           />
         )}
 
-        {overlay.type === "menu" && (
-          <ProfileMenu
-            person={person} points={points} close={close}
-            openRoulette={() => setOverlay({ type: "roulette" })}
-            openSettings={() => setOverlay({ type: "settings" })}
-            logout={onLogout}
-          />
-        )}
-        {overlay.type === "settings" && (
-          <SettingsScreen person={person} points={points} settings={settings} push={push} account={account} theme={theme} onTheme={chooseTheme} close={close} onChanged={loadPoints} onAccountChanged={(a) => { setAccount(a); setEmailBannerMsg(""); }} />
-        )}
         {overlay.type === "roulette" && <Roulette places={places} initialOptions={overlay.options} close={close} />}
         {overlay.type === "recap" && <RecapStories month={overlay.month} close={close} />}
         {overlay.type === "flower" && (

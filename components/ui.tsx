@@ -6,7 +6,7 @@ import { initialOf } from "./planUtils";
 export type IconName =
   | "home" | "calendar" | "pin" | "clock" | "plus" | "dots" | "chevron" | "check" | "heart"
   | "sparkles" | "sliders" | "flower" | "roulette" | "arrow" | "star" | "close" | "note" | "map"
-  | "edit" | "trash" | "logout" | "mail" | "camera";
+  | "edit" | "trash" | "logout" | "mail" | "camera" | "user";
 
 const paths: Record<IconName, ReactNode> = {
   home: <><path d="m3 10 9-7 9 7" /><path d="M5 9v11h14V9M9 20v-6h6v6" /></>,
@@ -21,7 +21,7 @@ const paths: Record<IconName, ReactNode> = {
   sparkles: <><path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2L12 3Z" /><path d="m19 14 .8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14ZM5 13l.8 2.2L8 16l-2.2.8L5 19l-.8-2.2L2 16l2.2-.8L5 13Z" /></>,
   sliders: <><path d="M4 6h16M4 12h16M4 18h16" /><circle cx="9" cy="6" r="2" /><circle cx="15" cy="12" r="2" /><circle cx="7" cy="18" r="2" /></>,
   flower: <><circle cx="12" cy="12" r="2" /><circle cx="12" cy="6" r="3" /><circle cx="18" cy="12" r="3" /><circle cx="12" cy="18" r="3" /><circle cx="6" cy="12" r="3" /></>,
-  roulette: <><circle cx="12" cy="12" r="8" /><path d="m12 4 3 8-3 8-3-8 3-8Zm-8 8h16" /></>,
+  roulette: <><circle cx="12" cy="13" r="8" /><path d="M12 5v16M4 13h16M6.3 7.3l11.4 11.4M17.7 7.3 6.3 18.7" /><circle cx="12" cy="13" r="1.6" fill="currentColor" /><path d="M10.2 1.8h3.6L12 4.6Z" fill="currentColor" /></>,
   arrow: <path d="m15 18-6-6 6-6" />,
   star: <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" />,
   close: <path d="m6 6 12 12M18 6 6 18" />,
@@ -30,6 +30,7 @@ const paths: Record<IconName, ReactNode> = {
   edit: <><path d="M4 20h4L19 9l-4-4L4 16v4Z" /><path d="m13 7 4 4" /></>,
   trash: <><path d="M4 7h16M10 11v6m4-6v6" /><path d="M6 7l1 13h10l1-13M9 7V4h6v3" /></>,
   logout: <><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11" /></>,
+  user: <><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" /></>,
   camera: <><path d="M4 8h3l2-3h6l2 3h3v11H4Z" /><circle cx="12" cy="13" r="3.5" /></>,
   mail: <><rect x="3" y="5" width="18" height="14" rx="3" /><path d="m4 7 8 6 8-6" /></>,
 };
