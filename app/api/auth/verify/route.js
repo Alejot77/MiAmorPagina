@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuth, saveAuth, peekToken, maskEmail } from "@/lib/auth";
+import { readJson } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 // valido" aunque el correo ya quedo confirmado. Repetirlo es inofensivo
 // (solo confirma el mismo correo al que llego) y vence a las 24 horas.
 export async function POST(request) {
-  const { token } = (await request.json()) || {};
+  const { token } = await readJson(request);
   const data = await peekToken(token, "verify");
   if (!data) {
     return NextResponse.json({ error: "El enlace venció. Pide uno nuevo desde la pestaña Cuenta." }, { status: 400 });

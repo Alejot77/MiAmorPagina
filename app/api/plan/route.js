@@ -1,34 +1,34 @@
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
-import { PEOPLE, categoryInfo, FOOD_TYPES } from "@/config";
+import { CATEGORIES, PEOPLE, categoryInfo, FOOD_TYPES } from "@/config";
 import { getSettings } from "@/lib/settings";
 import { sendPushToPerson, otherPerson } from "@/lib/push";
 import { deletePlanPhotos } from "@/lib/photos";
 import { loadActivePlans } from "@/lib/planWindow";
+import { requireSession } from "@/lib/session";
+import { LIMITS, cleanText, isDateStr, isId, readJson, safeLink } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
+
+const NEEDS_OPTIONS = "Cada categoría necesita al menos 2 opciones";
 
 // Convierte los "steps" que manda el cliente en la forma que guardamos.
 // Devuelve null si algo es invalido (categoria sin al menos 2 opciones, etc).
 function normalizeSteps(rawSteps) {
-  if (!Array.isArray(rawSteps) || rawSteps.length === 0) return null;
+  if (!Array.isArray(rawSteps) || rawSteps.length === 0 || rawSteps.length > LIMITS.steps * 2) return null;
 
   const steps = [];
   for (let i = 0; i < rawSteps.length; i++) {
     const s = rawSteps[i] || {};
-    const category =
-      typeof s.category === "string" && s.category.trim() ? s.category.trim() : "otro";
-    const question =
-      typeof s.question === "string" && s.question.trim()
-        ? s.question.trim()
-        : categoryInfo(category).question;
+    const category = CATEGORIES.some((c) => c.key === s.category) ? s.category : "otro";
+    const question = cleanText(s.question, LIMITS.question) || categoryInfo(category).question;
 
     // Id estable: se mantiene si ya existia (para no perder los votos de ese
     // paso), y se crea uno nuevo solo para pasos agregados.
-    const id = typeof s.id === "string" && s.id ? s.id : `step${Date.now()}${i}`;
+    const id = isId(s.id) ? s.id : `step${Date.now()}${i}`;
 
-    // Comida en 2 pasos: el "tipo" se vota entre FOOD_TYPES fijos, y el
-    // paso de "sitio" lo genera automaticamente /api/vote segun el catalogo.
+    // Comida en 2 pasos: primero se vota el tipo de comida; el paso de
+    // restaurante lo crean despues a mano (/api/plan/restaurants).
     const twoPhase = category === "comida" && Boolean(s.twoPhase);
 
     let options;
@@ -38,12 +38,11 @@ function normalizeSteps(rawSteps) {
       // Cada tipo es una clave de FOOD_TYPES o un texto libre ("Otro").
       const seen = new Set();
       options = [];
-      for (const raw of Array.isArray(s.selectedTypes) ? s.selectedTypes : []) {
-        if (typeof raw !== "string" || !raw.trim()) continue;
+      for (const raw of Array.isArray(s.selectedTypes) ? s.selectedTypes.slice(0, LIMITS.options) : []) {
         const known = FOOD_TYPES.find((f) => f.key === raw);
-        const option = known
-          ? { id: known.key, name: known.label }
-          : { id: `custom:${raw.trim().toLowerCase()}`, name: raw.trim() };
+        const text = cleanText(raw, LIMITS.name);
+        if (!known && !text) continue;
+        const option = known ? { id: known.key, name: known.label } : { id: `custom:${text.toLowerCase()}`, name: text };
         if (seen.has(option.id)) continue;
         seen.add(option.id);
         options.push(option);
@@ -51,16 +50,13 @@ function normalizeSteps(rawSteps) {
       if (options.length < 2) return null;
       kind = "comida-tipo";
     } else {
-      const cleanOptions = Array.isArray(s.options)
-        ? s.options
-            .map((o) => ({
-              name: typeof o?.name === "string" ? o.name.trim() : "",
-              link: typeof o?.link === "string" ? o.link.trim() : "",
-              placeId: typeof o?.placeId === "string" ? o.placeId : "",
-            }))
-            .filter((o) => o.name)
-        : [];
-
+      const cleanOptions = (Array.isArray(s.options) ? s.options.slice(0, LIMITS.options) : [])
+        .map((o) => ({
+          name: cleanText(o?.name, LIMITS.name),
+          link: safeLink(o?.link),
+          placeId: isId(o?.placeId) ? o.placeId : "",
+        }))
+        .filter((o) => o.name);
       if (cleanOptions.length < 2) return null;
 
       options = cleanOptions.map((o, j) => ({
@@ -69,55 +65,49 @@ function normalizeSteps(rawSteps) {
         ...(o.link ? { link: o.link } : {}),
         ...(o.placeId ? { placeId: o.placeId } : {}),
       }));
-      // "comida-lugar" es el paso generado automaticamente: se conserva ese
-      // tipo si el cliente lo reenvia tal cual (edicion sin tocar el toggle).
-      if (typeof s.kind === "string" && s.kind) kind = s.kind;
+      // "comida-lugar" es el paso de restaurante: se conserva si el cliente
+      // lo reenvia tal cual (edicion sin tocar el modo de comida).
+      if (s.kind === "comida-lugar") kind = s.kind;
     }
 
     const step = { id, category, question, options };
     if (kind) step.kind = kind;
     if (twoPhase) step.twoPhase = true;
-    if (typeof s.generatedStepId === "string" && s.generatedStepId) {
-      step.generatedStepId = s.generatedStepId;
-    }
-    if (typeof s.generatedFrom === "string" && s.generatedFrom) {
-      step.generatedFrom = s.generatedFrom;
-    }
-
+    if (isId(s.generatedStepId)) step.generatedStepId = s.generatedStepId;
+    if (isId(s.generatedFrom)) step.generatedFrom = s.generatedFrom;
     steps.push(step);
   }
 
+  // El limite cuenta categorias (los pasos de restaurante no cuentan).
+  if (steps.filter((st) => !st.generatedFrom).length > LIMITS.steps) return null;
   return steps;
 }
 
-export async function GET() {
+// Categorias que cuentan para puntos (el paso de restaurante no es nueva).
+const countCategories = (steps) => steps.filter((st) => !st.generatedFrom).length;
+
+export async function GET(request) {
+  const auth = await requireSession(request);
+  if (auth.error) return auth.error;
   const { plans, votes } = await loadActivePlans();
   return NextResponse.json({ plans, votes, people: PEOPLE });
 }
 
 export async function POST(request) {
-  const body = await request.json();
-  const { weekend, person, steps } = body || {};
+  const auth = await requireSession(request);
+  if (auth.error) return auth.error;
+  const person = auth.person;
+  const { weekend, steps } = await readJson(request);
 
-  if (!PEOPLE.includes(person)) {
-    return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
-  }
-  if (!weekend) {
+  if (!isDateStr(weekend)) {
     return NextResponse.json({ error: "Falta la fecha del finde" }, { status: 400 });
   }
-
   const normalized = normalizeSteps(steps);
-  if (!normalized) {
-    return NextResponse.json(
-      { error: "Cada categoría necesita al menos 2 opciones" },
-      { status: 400 }
-    );
-  }
+  if (!normalized) return NextResponse.json({ error: NEEDS_OPTIONS }, { status: 400 });
 
   const { pointsPerCategory } = await getSettings();
   const id = Date.now().toString();
-  // El paso de restaurante (generatedFrom) no es una categoria nueva: no suma puntos.
-  const categoryCount = normalized.filter((st) => !st.generatedFrom).length;
+  const categoryCount = countCategories(normalized);
   const pointsEarned = categoryCount * pointsPerCategory;
   const plan = {
     id,
@@ -129,8 +119,7 @@ export async function POST(request) {
   };
 
   await kv.set(`plan:${id}`, plan);
-  await kv.lpush("plans", id);
-  await kv.incrby(`points:${person}`, pointsEarned);
+  await Promise.all([kv.lpush("plans", id), kv.incrby(`points:${person}`, pointsEarned)]);
 
   const target = otherPerson(person);
   if (target) {
@@ -146,34 +135,29 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
-  const body = await request.json();
-  const { planId, weekend, person, steps } = body || {};
+  const auth = await requireSession(request);
+  if (auth.error) return auth.error;
+  const person = auth.person;
+  const { planId, weekend, steps } = await readJson(request);
 
-  if (!PEOPLE.includes(person)) {
-    return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
-  }
-  if (!planId) {
+  if (!isId(planId)) {
     return NextResponse.json({ error: "Falta el plan a editar" }, { status: 400 });
   }
-
+  if (weekend !== undefined && !isDateStr(weekend)) {
+    return NextResponse.json({ error: "Fecha inválida" }, { status: 400 });
+  }
   const existing = await kv.get(`plan:${planId}`);
   if (!existing) {
     return NextResponse.json({ error: "Ese plan no existe" }, { status: 404 });
   }
-
   const normalized = normalizeSteps(steps);
-  if (!normalized) {
-    return NextResponse.json(
-      { error: "Cada categoría necesita al menos 2 opciones" },
-      { status: 400 }
-    );
-  }
+  if (!normalized) return NextResponse.json({ error: NEEDS_OPTIONS }, { status: 400 });
 
   // Puntos: solo se premian categorias nuevas por encima del maximo ya
   // premiado para este plan, para no repetir puntos al solo editar texto.
   const { pointsPerCategory } = await getSettings();
   const prevAwarded = existing.pointsAwardedFor || 0;
-  const newCount = normalized.filter((st) => !st.generatedFrom).length;
+  const newCount = countCategories(normalized);
   const pointsEarned = Math.max(0, newCount - prevAwarded) * pointsPerCategory;
 
   const updated = {
@@ -184,30 +168,22 @@ export async function PATCH(request) {
     updatedAt: new Date().toISOString(),
     pointsAwardedFor: Math.max(prevAwarded, newCount),
   };
-
   await kv.set(`plan:${planId}`, updated);
-  if (pointsEarned > 0) {
-    await kv.incrby(`points:${person}`, pointsEarned);
-  }
+  if (pointsEarned > 0) await kv.incrby(`points:${person}`, pointsEarned);
 
-  // Se borran los votos de categorias que ya no existen...
+  // Se borran los votos de categorias que ya no existen y los que apuntan a
+  // una opcion que ya no existe en su categoria.
   const newStepIds = new Set(normalized.map((s) => s.id));
-  for (const oldStep of existing.steps) {
-    if (!newStepIds.has(oldStep.id)) {
-      await kv.del(`votes:${planId}:${oldStep.id}`);
-    }
-  }
-  // ...y los votos que apuntan a una opcion que ya no existe en su categoria.
-  for (const step of normalized) {
-    const votes = (await kv.hgetall(`votes:${planId}:${step.id}`)) || {};
-    const validIds = new Set(step.options.map((o) => o.id));
-    const orphans = Object.entries(votes)
-      .filter(([, v]) => !validIds.has(v))
-      .map(([voter]) => voter);
-    if (orphans.length > 0) {
-      await kv.hdel(`votes:${planId}:${step.id}`, ...orphans);
-    }
-  }
+  const removed = existing.steps.filter((s) => !newStepIds.has(s.id));
+  const currentVotes = await Promise.all(normalized.map((s) => kv.hgetall(`votes:${planId}:${s.id}`)));
+  await Promise.all([
+    ...removed.map((s) => kv.del(`votes:${planId}:${s.id}`)),
+    ...normalized.map((step, i) => {
+      const validIds = new Set(step.options.map((o) => o.id));
+      const orphans = Object.entries(currentVotes[i] || {}).filter(([, v]) => !validIds.has(v)).map(([voter]) => voter);
+      return orphans.length > 0 ? kv.hdel(`votes:${planId}:${step.id}`, ...orphans) : null;
+    }),
+  ]);
 
   const target = otherPerson(person);
   if (target) {
@@ -237,26 +213,20 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
-  const body = await request.json();
-  const { planId, person } = body || {};
-
-  if (!PEOPLE.includes(person)) {
-    return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
-  }
-  if (!planId) {
+  const auth = await requireSession(request);
+  if (auth.error) return auth.error;
+  const { planId } = await readJson(request);
+  if (!isId(planId)) {
     return NextResponse.json({ error: "Falta el plan a eliminar" }, { status: 400 });
   }
 
   const plan = await kv.get(`plan:${planId}`);
-
-  await kv.lrem("plans", 0, String(planId));
-  await kv.del(`plan:${planId}`);
-  if (plan?.steps) {
-    for (const step of plan.steps) {
-      await kv.del(`votes:${planId}:${step.id}`);
-    }
-  }
-  await deletePlanPhotos(planId);
+  await Promise.all([
+    kv.lrem("plans", 0, planId),
+    kv.del(`plan:${planId}`),
+    ...(plan?.steps || []).map((step) => kv.del(`votes:${planId}:${step.id}`)),
+    deletePlanPhotos(planId),
+  ]);
 
   const { plans, votes } = await loadActivePlans();
   return NextResponse.json({ plans, votes });

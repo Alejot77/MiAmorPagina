@@ -1,25 +1,14 @@
 import { NextResponse } from "next/server";
-import { kv } from "@/lib/kv";
-import { isPlanActive } from "@/lib/planWindow";
+import { isPlanActive, loadAllPlans, loadVotesFor } from "@/lib/planWindow";
+import { requireSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const ids = await kv.lrange("plans", 0, -1);
-  if (!ids || ids.length === 0) {
-    return NextResponse.json({ history: [] });
-  }
-
-  const history = await Promise.all(
-    ids.map(async (id) => {
-      const plan = await kv.get(`plan:${id}`);
-      if (!plan || isPlanActive(plan)) return null;
-      const votesEntries = await Promise.all(
-        plan.steps.map(async (s) => [s.id, (await kv.hgetall(`votes:${id}:${s.id}`)) || {}])
-      );
-      return { plan, votes: Object.fromEntries(votesEntries) };
-    })
-  );
-
-  return NextResponse.json({ history: history.filter(Boolean) });
+// Planes que ya pasaron su martes de corte, con sus votos.
+export async function GET(request) {
+  const auth = await requireSession(request);
+  if (auth.error) return auth.error;
+  const past = (await loadAllPlans()).filter((p) => !isPlanActive(p));
+  const votes = await loadVotesFor(past);
+  return NextResponse.json({ history: past.map((plan) => ({ plan, votes: votes[plan.id] })) });
 }

@@ -3,6 +3,8 @@ import { kv } from "@/lib/kv";
 import { PEOPLE, FOOD_TYPES } from "@/config";
 import { sendPushToPerson, otherPerson } from "@/lib/push";
 import { isPlanActive, loadActivePlans } from "@/lib/planWindow";
+import { requireSession } from "@/lib/session";
+import { LIMITS, cleanText, isId, readJson, safeLink } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +12,12 @@ export const dynamic = "force-dynamic";
 // eligen a mano que restaurantes entran a la votacion de "¿Dónde comemos?".
 // Los que agregan escritos a mano se pueden guardar tambien en Sitios.
 export async function POST(request) {
-  const body = await request.json();
-  const { planId, stepId, person, restaurants } = body || {};
-
-  if (!PEOPLE.includes(person)) {
-    return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
+  const auth = await requireSession(request);
+  if (auth.error) return auth.error;
+  const person = auth.person;
+  const { planId, stepId, restaurants } = await readJson(request);
+  if (!isId(planId) || !isId(stepId)) {
+    return NextResponse.json({ error: "Este plan ya no está activo" }, { status: 400 });
   }
 
   const plan = await kv.get(`plan:${planId}`);
@@ -34,14 +37,14 @@ export async function POST(request) {
 
   const seen = new Set();
   const clean = [];
-  for (const r of Array.isArray(restaurants) ? restaurants : []) {
-    const name = typeof r?.name === "string" ? r.name.trim() : "";
+  for (const r of Array.isArray(restaurants) ? restaurants.slice(0, LIMITS.options) : []) {
+    const name = cleanText(r?.name, LIMITS.name);
     if (!name || seen.has(name.toLowerCase())) continue;
     seen.add(name.toLowerCase());
     clean.push({
       name,
-      link: typeof r?.link === "string" ? r.link.trim() : "",
-      placeId: typeof r?.placeId === "string" ? r.placeId : "",
+      link: safeLink(r?.link),
+      placeId: isId(r?.placeId) ? r.placeId : "",
       save: Boolean(r?.save),
     });
   }
@@ -68,22 +71,26 @@ export async function POST(request) {
   const winnerId = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
   const foodType = FOOD_TYPES.some((f) => f.key === winnerId) ? winnerId : "otro";
 
-  for (let i = 0; i < clean.length; i++) {
-    const r = clean[i];
-    if (r.placeId || !r.save) continue;
-    const id = `place${Date.now()}${i}`;
-    await kv.set(`place:${id}`, {
-      id,
-      name: r.name,
-      group: "comida",
-      category: foodType,
-      ...(r.link ? { link: r.link } : {}),
-      createdBy: person,
-      createdAt: new Date().toISOString(),
-    });
-    await kv.lpush("places", id);
-    r.placeId = id;
-  }
+  const now = Date.now();
+  await Promise.all(
+    clean.map((r, i) => {
+      if (r.placeId || !r.save) return null;
+      const id = `place${now}${i}`;
+      r.placeId = id;
+      return Promise.all([
+        kv.set(`place:${id}`, {
+          id,
+          name: r.name,
+          group: "comida",
+          category: foodType,
+          ...(r.link ? { link: r.link } : {}),
+          createdBy: person,
+          createdAt: new Date().toISOString(),
+        }),
+        kv.lpush("places", id),
+      ]);
+    })
+  );
 
   const options = clean.map((r, j) => ({
     id: `opt${j}`,

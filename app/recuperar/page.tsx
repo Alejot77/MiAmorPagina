@@ -30,7 +30,7 @@ export default function Recuperar() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError("");
-    if (password.length < 4) return setError("La clave debe tener al menos 4 caracteres");
+    if (password.length < 6) return setError("La clave debe tener al menos 6 caracteres");
     if (password !== confirm) return setError("Las claves no coinciden");
     setBusy(true);
     try {

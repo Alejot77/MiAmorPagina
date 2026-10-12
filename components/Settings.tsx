@@ -246,7 +246,7 @@ export function AccountPage({ person, points, settings, push, account, theme, gr
     e.preventDefault();
     setPwMsg("");
     setPwError("");
-    if (pw.next.length < 4) return setPwError("La clave nueva debe tener al menos 4 caracteres");
+    if (pw.next.length < 6) return setPwError("La clave nueva debe tener al menos 6 caracteres");
     if (pw.next !== pw.confirm) return setPwError("Las claves nuevas no coinciden");
     try {
       await api("/api/auth", "PUT", { person, currentPassword: pw.current, newPassword: pw.next, newPasswordConfirm: pw.confirm });

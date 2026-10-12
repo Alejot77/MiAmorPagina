@@ -1,5 +1,12 @@
 // fetch a nuestra API: devuelve el JSON o lanza un Error con el mensaje
-// que mando el servidor ({ error: "..." }).
+// que mando el servidor ({ error: "..." }). Si la sesion termino (401), avisa
+// a la pagina para que vuelva a la pantalla de entrada.
+export const SESSION_ENDED = "pd:session-ended";
+
+export function checkSession(res: Response) {
+  if (res.status === 401) window.dispatchEvent(new Event(SESSION_ENDED));
+}
+
 export async function api<T = any>(url: string, method = "GET", body?: unknown): Promise<T> {
   const res = await fetch(url, {
     method,
@@ -12,6 +19,9 @@ export async function api<T = any>(url: string, method = "GET", body?: unknown):
   } catch {
     // respuesta sin cuerpo JSON
   }
-  if (!res.ok) throw new Error(json?.error || "Algo salió mal. Intenta de nuevo.");
+  if (!res.ok) {
+    if (json?.code === "no-session") checkSession(res);
+    throw new Error(json?.error || "Algo salió mal. Intenta de nuevo.");
+  }
   return json as T;
 }

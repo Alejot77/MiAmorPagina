@@ -1,17 +1,20 @@
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
-import { PEOPLE } from "@/config";
 import { sendPushToPerson, otherPerson } from "@/lib/push";
 import { isPlanActive, loadActivePlans } from "@/lib/planWindow";
+import { requireSession } from "@/lib/session";
+import { isId, readJson } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
 
+// POST { planId, stepId, optionId } -> voto de quien tiene la sesion.
 export async function POST(request) {
-  const body = await request.json();
-  const { planId, stepId, person, optionId } = body || {};
-
-  if (!PEOPLE.includes(person)) {
-    return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
+  const auth = await requireSession(request);
+  if (auth.error) return auth.error;
+  const person = auth.person;
+  const { planId, stepId, optionId } = await readJson(request);
+  if (!isId(planId) || !isId(stepId)) {
+    return NextResponse.json({ error: "Opción inválida" }, { status: 400 });
   }
 
   const plan = await kv.get(`plan:${planId}`);

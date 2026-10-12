@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { DEFAULT_GROUP_NAME, PEOPLE, categoryInfo, defaultThemeFor } from "@/config";
 import { usePushNotifications } from "@/lib/usePushNotifications";
-import { applyTheme, rememberTheme, savedTheme } from "@/lib/useThemePerson";
+import { applyTheme, rememberTheme } from "@/lib/useThemePerson";
 import type { Account, HistoryEntry, Place, Plan, PointsData, RecapList, VotesByPlan } from "./types";
 import { PhotosSection } from "./Photos";
 import { RecapStories, monthLabel } from "./Recap";
@@ -50,7 +50,10 @@ function todayKey() {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
-export default function AppShell({ person, onLogout }: { person: string; onLogout: () => void }) {
+// Lo que entrega GET /api/session al abrir la app.
+export type Boot = { person: string; theme: string; groupName: string; account: Account };
+
+export default function AppShell({ person, boot, onLogout }: { person: string; boot: Boot; onLogout: () => void }) {
   const push = usePushNotifications(person) as Push;
   const [tab, setTab] = useState<Tab>("home");
   const [overlay, setOverlay] = useState<Overlay>({ type: "none" });
@@ -61,12 +64,12 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
   const [points, setPoints] = useState<PointsData | null>(null);
   const [settings, setSettings] = useState<{ pointsPerCategory: number; dessertThreshold: number } | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
-  const [account, setAccount] = useState<Account | null>(null);
+  const [account, setAccount] = useState<Account | null>(boot.account);
   const [recapList, setRecapList] = useState<RecapList | null>(null);
   const [recapSeenTick, setRecapSeenTick] = useState(0);
-  const [groupName, setGroupName] = useState(DEFAULT_GROUP_NAME);
+  const [groupName, setGroupName] = useState(boot.groupName || DEFAULT_GROUP_NAME);
   const [accountFocus, setAccountFocus] = useState<{ group: string; at: number } | null>(null);
-  const [theme, setTheme] = useState(() => savedTheme(person) || defaultThemeFor(person));
+  const [theme, setTheme] = useState(boot.theme || defaultThemeFor(person));
   const [emailBannerMsg, setEmailBannerMsg] = useState("");
   const [error, setError] = useState("");
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
@@ -87,9 +90,7 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
         setSettings(s);
       })
       .catch(fail);
-  const loadAccount = () => api<Account>(`/api/auth?person=${encodeURIComponent(person)}`).then(setAccount).catch(() => {});
   const loadRecap = () => api<RecapList>("/api/recap").then(setRecapList).catch(() => {});
-  const loadGroupName = () => api<{ name: string }>("/api/group").then((j) => setGroupName(j.name)).catch(() => {});
 
   // Tema guardado en la base (por si lo cambió en otro celular).
   const showTheme = (id: string) => {
@@ -97,7 +98,6 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
     applyTheme(id);
     rememberTheme(person, id);
   };
-  const loadTheme = () => api<{ theme: string }>(`/api/theme?person=${encodeURIComponent(person)}`).then((j) => showTheme(j.theme)).catch(() => {});
   function chooseTheme(id: string) {
     showTheme(id);
     api("/api/theme", "PUT", { person, theme: id }).catch(fail);
@@ -126,10 +126,8 @@ export default function AppShell({ person, onLogout }: { person: string; onLogou
 
   useEffect(() => {
     loadPlans();
-    loadAccount();
     loadRecap();
-    loadTheme();
-    loadGroupName();
+    showTheme(boot.theme || defaultThemeFor(person)); // el de la base (puede venir de otro celular)
     loadHistory();
     loadPlaces();
     loadPoints();

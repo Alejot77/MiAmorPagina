@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { put, del } from "@vercel/blob";
 import { kv } from "@/lib/kv";
-import { PEOPLE } from "@/config";
 import { MAX_PHOTOS_PER_PLAN, MAX_PHOTO_BYTES, PHOTO_TYPES, loadPhotos, photosConfigured } from "@/lib/photos";
+import { requireSession } from "@/lib/session";
+import { isId, readJson } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
 
@@ -10,21 +11,25 @@ const NOT_CONFIGURED = "Falta conectar el almacenamiento de fotos (Vercel Blob) 
 
 // GET ?planId= -> fotos de ese plan.
 export async function GET(request) {
+  const auth = await requireSession(request);
+  if (auth.error) return auth.error;
   const planId = new URL(request.url).searchParams.get("planId");
-  if (!planId) return NextResponse.json({ error: "Falta el plan" }, { status: 400 });
+  if (!isId(planId)) return NextResponse.json({ error: "Falta el plan" }, { status: 400 });
   return NextResponse.json({ photos: await loadPhotos(planId), configured: photosConfigured() });
 }
 
 // POST (multipart: planId, person, file, w, h) -> sube una foto.
 export async function POST(request) {
+  const auth = await requireSession(request);
+  if (auth.error) return auth.error;
+  const person = auth.person;
   if (!photosConfigured()) return NextResponse.json({ error: NOT_CONFIGURED }, { status: 503 });
-  const form = await request.formData();
-  const person = form.get("person");
+  const form = await request.formData().catch(() => null);
+  if (!form) return NextResponse.json({ error: "Falta la foto" }, { status: 400 });
   const planId = form.get("planId");
   const file = form.get("file");
 
-  if (!PEOPLE.includes(person)) return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
-  if (!planId || !(await kv.get(`plan:${planId}`))) return NextResponse.json({ error: "Ese plan ya no existe" }, { status: 404 });
+  if (!isId(planId) || !(await kv.get(`plan:${planId}`))) return NextResponse.json({ error: "Ese plan ya no existe" }, { status: 404 });
   if (!file || typeof file === "string") return NextResponse.json({ error: "Falta la foto" }, { status: 400 });
   const ext = PHOTO_TYPES[file.type];
   if (!ext) return NextResponse.json({ error: "Ese archivo no es una foto (JPG, PNG o WebP)" }, { status: 400 });
@@ -44,8 +49,8 @@ export async function POST(request) {
     url: blob.url,
     by: person,
     at: new Date().toISOString(),
-    w: Number(form.get("w")) || null,
-    h: Number(form.get("h")) || null,
+    w: Math.min(Number(form.get("w")) || 0, 10000) || null,
+    h: Math.min(Number(form.get("h")) || 0, 10000) || null,
   };
   await kv.hset(`photos:${planId}`, { [id]: photo });
   return NextResponse.json({ photos: await loadPhotos(planId) });
@@ -53,8 +58,10 @@ export async function POST(request) {
 
 // DELETE { planId, photoId, person } -> borra una foto (archivo incluido).
 export async function DELETE(request) {
-  const { planId, photoId, person } = (await request.json()) || {};
-  if (!PEOPLE.includes(person)) return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
+  const auth = await requireSession(request);
+  if (auth.error) return auth.error;
+  const { planId, photoId } = await readJson(request);
+  if (!isId(planId)) return NextResponse.json({ error: "Esa foto ya no existe" }, { status: 404 });
   const photo = (await loadPhotos(planId)).find((p) => p.id === photoId);
   if (!photo) return NextResponse.json({ error: "Esa foto ya no existe" }, { status: 404 });
   if (photosConfigured()) {

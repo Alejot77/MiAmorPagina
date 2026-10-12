@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { PEOPLE, categoryInfo } from "@/config";
 import type { Photo, RecapEntry, RecapList } from "./types";
 import { api } from "./api";
@@ -108,8 +108,10 @@ export function RecapStories({ month, close }: { month: string; close: () => voi
   const nextName = monthLabel(`${month.slice(0, 5)}${String((Number(month.slice(5, 7)) % 12) + 1).padStart(2, "0")}`);
 
   const slides: Slide[] = [];
-  if (entries) {
-    const r = buildRecap(entries);
+  // Se calcula una sola vez por mes (no en cada pausa o cambio de historia).
+  const recap = useMemo(() => (entries ? buildRecap(entries) : null), [entries]);
+  if (recap) {
+    const r = recap;
     slides.push({
       key: "cover",
       tone: "cover",
@@ -278,7 +280,7 @@ export function RecapStories({ month, close }: { month: string; close: () => voi
     go(e.clientX - rect.left < rect.width / 3 ? index - 1 : index + 1);
   };
 
-  const allPhotos = entries ? buildRecap(entries).photos : [];
+  const allPhotos = recap?.photos || [];
 
   return (
     <div className="recap-screen">

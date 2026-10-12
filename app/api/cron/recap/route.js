@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
 import { PEOPLE } from "@/config";
@@ -6,11 +7,19 @@ import { currentMonth, loadAllPlans, monthName, shiftMonth } from "@/lib/recap";
 
 export const dynamic = "force-dynamic";
 
+// Compara la clave del cron en tiempo constante.
+function validCronSecret(header) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret || typeof header !== "string") return false;
+  const a = Buffer.from(header);
+  const b = Buffer.from(`Bearer ${secret}`);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 // Lo llama el cron de Vercel el dia 1 de cada mes (vercel.json): avisa a
 // los dos que el resumen del mes anterior ya se puede ver.
 export async function GET(request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!validCronSecret(request.headers.get("authorization"))) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 

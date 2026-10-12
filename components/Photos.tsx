@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ChangeEvent } from "react";
 import type { Photo } from "./types";
-import { api } from "./api";
+import { api, checkSession } from "./api";
 import { ConfirmDialog, Icon } from "./ui";
 
 const MAX_SIDE = 1600;
@@ -44,6 +44,7 @@ async function uploadPhoto(planId: string, person: string, file: File): Promise<
   form.append("file", blob, "foto.jpg");
   const res = await fetch("/api/photos", { method: "POST", body: form });
   const json = await res.json().catch(() => ({}));
+  if (!res.ok && json.code === "no-session") checkSession(res);
   if (!res.ok) throw new Error(json.error || "No se pudo subir la foto");
   return json.photos;
 }

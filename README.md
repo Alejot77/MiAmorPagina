@@ -51,7 +51,30 @@ verificado es el único que sirve para recuperar la clave:
 - **Cuenta → Mi correo** permite cambiarlo (pide la clave actual). El
   correo nuevo queda pendiente hasta que se confirme; mientras tanto el
   anterior sigue sirviendo para recuperar la clave.
-- **Cuenta → Mi clave** cambia la clave (pide la actual).
+- **Cuenta → Mi clave** cambia la clave (pide la actual). Las claves
+  nuevas deben tener al menos 6 caracteres.
+
+### Sesiones y seguridad
+
+- Al entrar con la clave, el servidor crea una **sesión**: un token al
+  azar en una cookie `httpOnly` (el JavaScript de la página no la puede
+  leer) con `SameSite=Lax`. En la base solo se guarda su hash
+  (`session:<hash>`), y vence a los 180 días sin usar la app.
+- **Todas** las rutas de la API toman a la persona de la sesión, nunca de
+  lo que mande el navegador. Sin sesión responden 401 (salvo la pantalla
+  de entrada, "olvidé mi clave", los enlaces de los correos y el cron).
+  Las que cambian datos rechazan peticiones de otros sitios (`Origin`).
+- 8 claves equivocadas seguidas bloquean esa cuenta 15 minutos.
+- Cambiar o recuperar la clave cierra las sesiones de los otros
+  celulares. "Cambiar de persona" cierra la sesión también en el servidor.
+- Los enlaces de los correos usan siempre el dominio de producción de
+  Vercel (`VERCEL_PROJECT_PRODUCTION_URL`, o `APP_URL` si se define), no
+  el que diga la petición.
+- Lo que se guarda se limpia antes: textos con largo máximo, solo enlaces
+  `http`/`https`, fechas y categorías válidas, y avisos solo hacia los
+  servicios de notificaciones reales (Google, Apple, Mozilla, Microsoft).
+- La app manda encabezados de seguridad (no se puede meter en un iframe,
+  `nosniff`, HSTS, etc.).
 
 ### Envío de correos (Gmail)
 

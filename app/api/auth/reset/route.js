@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { getAuth, saveAuth, hashPassword, peekToken, consumeToken } from "@/lib/auth";
+import { MIN_PASSWORD, getAuth, saveAuth, hashPassword, peekToken, consumeToken } from "@/lib/auth";
+import { destroyAllSessions, withNewSession } from "@/lib/session";
+import { readJson } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
 
@@ -10,12 +12,14 @@ export async function GET(request) {
   return NextResponse.json(data ? { valid: true, person: data.person } : { valid: false });
 }
 
-// POST { token, newPassword, newPasswordConfirm } -> pone la clave nueva.
+// POST { token, newPassword, newPasswordConfirm } -> pone la clave nueva,
+// cierra las sesiones viejas y deja esta iniciada.
 export async function POST(request) {
-  const { token, newPassword, newPasswordConfirm } = (await request.json()) || {};
-  if (!newPassword || newPassword.length < 4) {
-    return NextResponse.json({ error: "La clave debe tener al menos 4 caracteres" }, { status: 400 });
+  const { token, newPassword, newPasswordConfirm } = await readJson(request);
+  if (typeof newPassword !== "string" || newPassword.length < MIN_PASSWORD) {
+    return NextResponse.json({ error: `La clave debe tener al menos ${MIN_PASSWORD} caracteres` }, { status: 400 });
   }
+  if (newPassword.length > 200) return NextResponse.json({ error: "La clave es demasiado larga" }, { status: 400 });
   if (newPassword !== newPasswordConfirm) {
     return NextResponse.json({ error: "Las claves no coinciden" }, { status: 400 });
   }
@@ -25,5 +29,6 @@ export async function POST(request) {
     return NextResponse.json({ error: "El enlace venció o ya se usó. Pide uno nuevo." }, { status: 400 });
   }
   await saveAuth(data.person, { ...record, ...hashPassword(newPassword) });
-  return NextResponse.json({ ok: true, person: data.person });
+  await destroyAllSessions(data.person);
+  return withNewSession(data.person, { ok: true, person: data.person });
 }

@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { PEOPLE } from "@/config";
 import { getAuth, maskEmail, tooSoon, sendResetEmail } from "@/lib/auth";
+import { readJson } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
 
 // POST { person } -> "olvide mi clave": manda un enlace para crear una
 // clave nueva, solo al correo verificado de esa persona.
 export async function POST(request) {
-  const { person } = (await request.json()) || {};
+  const { person } = await readJson(request);
   if (!PEOPLE.includes(person)) {
     return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
   }

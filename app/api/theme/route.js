@@ -1,22 +1,18 @@
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
-import { PEOPLE, THEMES, defaultThemeFor } from "@/config";
+import { THEMES } from "@/config";
+import { requireSession } from "@/lib/session";
+import { readJson } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
 
-// GET ?person= -> tema elegido por esa persona (o el suyo por defecto).
-export async function GET(request) {
-  const person = new URL(request.url).searchParams.get("person");
-  if (!PEOPLE.includes(person)) return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
-  const theme = await kv.get(`theme:${person}`);
-  return NextResponse.json({ theme: THEMES.some((t) => t.id === theme) ? theme : defaultThemeFor(person) });
-}
-
-// PUT { person, theme } -> guarda el tema de esa persona.
+// PUT { theme } -> guarda el tema de quien tiene la sesion. (El tema actual
+// llega con GET /api/session.)
 export async function PUT(request) {
-  const { person, theme } = (await request.json()) || {};
-  if (!PEOPLE.includes(person)) return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
+  const auth = await requireSession(request);
+  if (auth.error) return auth.error;
+  const { theme } = await readJson(request);
   if (!THEMES.some((t) => t.id === theme)) return NextResponse.json({ error: "Ese tema no existe" }, { status: 400 });
-  await kv.set(`theme:${person}`, theme);
+  await kv.set(`theme:${auth.person}`, theme);
   return NextResponse.json({ theme });
 }

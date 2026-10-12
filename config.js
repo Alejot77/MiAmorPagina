@@ -2,10 +2,7 @@
 // Cambia estos valores si quieren usar otros nombres o apodos.
 export const PEOPLE = ["Stefanny", "Alejandro"];
 
-// Un color de acento por persona, en el mismo orden que PEOPLE.
-export const PERSON_COLORS = ["#ef7096", "#e45757"];
-
-// Texto del menu de perfil ("Planeando juntos desde ...").
+// Texto de la pestaña Cuenta ("Planeando juntos desde ...").
 export const TOGETHER_SINCE = "diciembre de 2023";
 
 // Categorias disponibles para armar un plan (comida, actividad, etc).

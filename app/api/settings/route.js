@@ -1,39 +1,30 @@
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
-import { PEOPLE } from "@/config";
 import { getSettings } from "@/lib/settings";
+import { requireSession } from "@/lib/session";
+import { readJson } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const settings = await getSettings();
-  return NextResponse.json(settings);
+export async function GET(request) {
+  const auth = await requireSession(request);
+  if (auth.error) return auth.error;
+  return NextResponse.json(await getSettings());
 }
 
+// PUT { pointsPerCategory, dessertThreshold } -> reglas de puntos (de los dos).
 export async function PUT(request) {
-  const body = await request.json();
-  const { person, pointsPerCategory, dessertThreshold } = body || {};
-
-  if (!PEOPLE.includes(person)) {
-    return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
+  const auth = await requireSession(request);
+  if (auth.error) return auth.error;
+  const body = await readJson(request);
+  const ppc = Number(body.pointsPerCategory);
+  const threshold = Number(body.dessertThreshold);
+  if (!Number.isInteger(ppc) || ppc <= 0 || ppc > 1000) {
+    return NextResponse.json({ error: "Los puntos por categoría deben ser un número entre 1 y 1000" }, { status: 400 });
   }
-  const ppc = Number(pointsPerCategory);
-  const threshold = Number(dessertThreshold);
-  if (!Number.isFinite(ppc) || ppc <= 0) {
-    return NextResponse.json(
-      { error: "Los puntos por categoría deben ser un número mayor a 0" },
-      { status: 400 }
-    );
+  if (!Number.isInteger(threshold) || threshold <= 0 || threshold > 100000) {
+    return NextResponse.json({ error: "El puntaje del postre debe ser un número entre 1 y 100000" }, { status: 400 });
   }
-  if (!Number.isFinite(threshold) || threshold <= 0) {
-    return NextResponse.json(
-      { error: "El puntaje del postre debe ser un número mayor a 0" },
-      { status: 400 }
-    );
-  }
-
-  await kv.set("settings:points_per_category", ppc);
-  await kv.set("settings:dessert_threshold", threshold);
-
+  await Promise.all([kv.set("settings:points_per_category", ppc), kv.set("settings:dessert_threshold", threshold)]);
   return NextResponse.json({ pointsPerCategory: ppc, dessertThreshold: threshold });
 }

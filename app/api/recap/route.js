@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { loadVotes } from "@/lib/planWindow";
+import { loadVotesFor } from "@/lib/planWindow";
+import { requireSession } from "@/lib/session";
 import { loadPhotos, countPhotos } from "@/lib/photos";
 import { currentMonth, loadAllPlans, monthName, shiftMonth } from "@/lib/recap";
 
@@ -10,6 +11,8 @@ export const dynamic = "force-dynamic";
 //   GET           -> meses disponibles y el que esta en curso.
 //   GET ?month=   -> planes de ese mes con sus votos y fotos.
 export async function GET(request) {
+  const auth = await requireSession(request);
+  if (auth.error) return auth.error;
   const month = new URL(request.url).searchParams.get("month");
   const now = currentMonth();
   const plans = await loadAllPlans();
@@ -39,8 +42,7 @@ export async function GET(request) {
     );
   }
   const inMonth = plans.filter((p) => p.weekend.startsWith(month)).sort((a, b) => (a.weekend < b.weekend ? -1 : 1));
-  const entries = await Promise.all(
-    inMonth.map(async (plan) => ({ plan, votes: await loadVotes(plan.id, plan), photos: await loadPhotos(plan.id) }))
-  );
+  const [votes, photos] = await Promise.all([loadVotesFor(inMonth), Promise.all(inMonth.map((p) => loadPhotos(p.id)))]);
+  const entries = inMonth.map((plan, i) => ({ plan, votes: votes[plan.id], photos: photos[i] }));
   return NextResponse.json({ month, entries });
 }
