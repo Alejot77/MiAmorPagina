@@ -255,10 +255,9 @@ h1, h2 { font-family: var(--font-heading), serif; }
 .couple-mark strong { font-size: 15px; }
 .eyebrow { font-size: 10px; letter-spacing: .13em; font-weight: 700; color: var(--purple); }
 .avatar-pair, .mini-pair { display: flex; }
-.avatar-pair .avatar:last-child, .mini-pair .avatar:last-child { margin-left: -8px; }
+.avatar-pair .avatar + .avatar, .mini-pair .avatar + .avatar { margin-left: -8px; }
 .avatar { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 700; border: 2px solid var(--surface); flex: none; }
-.avatar-s { background: var(--pink); }
-.avatar-a { background: var(--coral); }
+.avatar-more { background: var(--track); color: var(--ink); font-size: 11px; }
 .avatar-small { width: 24px; height: 24px; font-size: 10px; }
 .icon { display: inline-block; flex: none; }
 .icon-button, .round-button { border: 0; background: var(--lavender-soft); width: 44px; height: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
@@ -562,8 +561,7 @@ blockquote { margin: 13px 0; color: var(--muted); font: 600 italic 13px var(--fo
 .points-badge { border-radius: 999px; padding: 7px 10px; background: var(--lavender); color: var(--purple); font-size: 11px; font-weight: 700; white-space: nowrap; }
 .points-progress { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
 .points-progress i { height: 7px; border-radius: 999px; background: var(--track); }
-.points-progress.points-s i.active { background: var(--pink); }
-.points-progress.points-a i.active { background: var(--coral); }
+.points-progress i.active { background: var(--pp-color, var(--purple)); }
 .points-caption, .person-progress-copy { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 9px; margin-top: 7px; }
 .points-caption span:last-child, .person-progress-copy span:last-child { text-align: right; }
 .menu-list { border-top: 1px solid var(--line); }
@@ -833,7 +831,7 @@ a.text-link { text-decoration: none; }
 .recap-eyebrow { font-size: 11px; letter-spacing: .18em; font-weight: 700; opacity: .85; }
 .recap-month { font: 700 64px/1 var(--font-heading); margin: 0; letter-spacing: -.03em; color: #fff; }
 .recap-year { font: italic 600 22px var(--font-heading); opacity: .85; }
-.recap-pair { justify-content: center; margin: 10px 0; }
+.recap-pair { display: flex; justify-content: center; margin: 10px 0; }
 .recap-pair .avatar { width: 48px; height: 48px; font-size: 17px; border-color: rgba(255, 255, 255, .75); }
 .recap-tap { font-size: 12px; opacity: .75; margin: 18px 0 0; }
 .recap-body h2 { font: 700 30px/1.15 var(--font-heading); margin: 0; color: #fff; }
@@ -957,3 +955,67 @@ a.text-link { text-decoration: none; }
 .meal-picker { text-align: left; margin: 16px 0 4px; }
 .meal-picker > span { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--ink); }
 .meal-picker small { color: var(--muted); font-weight: 500; }
+
+/* Entrada con cuentas */
+.login-logo { display: block; font-size: 34px; margin-bottom: 6px; }
+.login-invite { color: #d9cdf0 !important; background: rgba(157, 111, 224, .14); border-radius: 12px; padding: 9px 12px; }
+.login-invite strong { color: #fff; }
+.login-form input[type="text"] { letter-spacing: normal; font-size: 15px; }
+.login-switch { text-align: center; color: #9a94a3; font-size: 12px; margin: 2px 0 0; }
+.login-switch button { border: 0; background: none; color: #d9cdf0; font-weight: 700; cursor: pointer; padding: 0; }
+
+/* ---------- Salas ---------- */
+.group-switch { border: 0; background: transparent; padding: 0; cursor: pointer; text-align: left; color: inherit; min-width: 0; }
+.group-switch .group-name { max-width: 200px; }
+.switch-chevron { display: grid; place-items: center; color: var(--muted); transform: rotate(90deg); }
+.pinned-groups { display: flex; gap: 8px; overflow-x: auto; padding: 10px 20px 2px; scrollbar-width: none; }
+.pinned-groups::-webkit-scrollbar { display: none; }
+.pinned-groups button { flex: none; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 7px 13px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.pinned-groups button.active { background: var(--purple); border-color: var(--purple); color: #fff; }
+.group-list { display: grid; gap: 8px; }
+.group-row { display: grid; grid-template-columns: 1fr 40px; align-items: center; gap: 6px; background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 4px 4px 4px 0; }
+.group-row.current { border-color: var(--purple); }
+.group-row-main { border: 0; background: transparent; color: var(--ink); display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 8px 4px 8px 12px; text-align: left; cursor: pointer; min-width: 0; }
+.group-row-main > span:nth-child(2) { display: flex; flex-direction: column; min-width: 0; }
+.group-row-main strong { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group-row-main small { font-size: 11px; color: var(--muted); }
+.group-row-main > svg { color: var(--purple); }
+.pin-button { width: 36px; height: 36px; border-radius: 50%; border: 0; background: transparent; color: var(--muted-2); display: grid; place-items: center; cursor: pointer; }
+.pin-button.on { background: var(--card-selected); color: var(--purple); }
+.group-actions { display: grid; gap: 6px; margin-top: 14px; }
+.group-form { display: grid; gap: 10px; margin-top: 4px; }
+.group-form input { min-height: 48px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 14px; padding: 0 14px; font-size: 15px; }
+.group-form .code-input { text-align: center; letter-spacing: .3em; font-weight: 700; text-transform: uppercase; font-size: 20px; }
+.onboarding h1 { font-size: 34px; margin-top: 4px; }
+.onboarding .lead { margin-bottom: 8px; }
+.onboarding-card { display: grid; gap: 4px; }
+.onboarding-card > strong { font-size: 15px; }
+.onboarding-card > small { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+.invite-code { text-align: center; font: 700 34px/1 var(--font-heading); letter-spacing: .18em; color: var(--purple); background: var(--card-selected); border: 1.5px dashed var(--purple); border-radius: 16px; padding: 16px 8px; margin-bottom: 10px; user-select: all; }
+.invite-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.member-list { display: grid; gap: 4px; }
+.member-row { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.member-row:last-child { border-bottom: 0; }
+.member-row > span:nth-child(2) { display: flex; flex-direction: column; min-width: 0; }
+.member-row strong { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.member-row small { font-size: 10px; font-weight: 700; color: var(--purple); letter-spacing: .06em; }
+.member-actions { display: flex; gap: 6px; }
+.member-actions button { border: 0; background: var(--card-selected); color: var(--purple); font-size: 11px; font-weight: 700; border-radius: 10px; padding: 7px 9px; cursor: pointer; }
+.member-actions button.danger { background: var(--pink-bg); color: var(--coral); }
+.leave-group { width: 100%; margin-top: 10px; border: 1.5px solid var(--line); background: transparent; color: var(--coral); border-radius: 14px; padding: 12px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.my-groups { padding: 12px; }
+.my-groups .group-row + .group-row { margin-top: 8px; }
+.account-since { color: var(--muted); font-size: 12px; margin: 4px 4px 0; }
+.account-since .heart { color: var(--pink); }
+.reward-input { width: 120px !important; text-align: center; }
+.invite-members { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 14px 0 6px; }
+.invite-members .avatar-pair { justify-content: center; }
+.invite-members p { margin: 0; }
+.login-card .eyebrow { display: block; margin-top: 2px; }
+
+/* Votacion de grupo */
+.vote-status.many { align-items: center; }
+.vote-avatars { display: flex; }
+.vote-avatars > span + span { margin-left: -6px; }
+.vote-avatars .waiting { opacity: .35; filter: grayscale(.6); }
+.close-vote { margin-top: 2px; gap: 6px; }

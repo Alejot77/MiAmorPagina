@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { PEOPLE } from "@/config";
 import type { Option, Place, Plan, PlanVotes, Step, StepVotes, VotesByPlan } from "./types";
-import { Avatar, Button, Icon, Pill } from "./ui";
+import { Avatar, AvatarStack, Button, Icon, Pill } from "./ui";
+import { memberName, namesList } from "./members";
 import {
   categoryTitle, stepEmoji, dayMonthUpper, generatedStep, isPlanComplete, optionEmoji, rangeLabel,
   rootSteps, stepResult, terminalStep, todayStr, upcomingSaturday, weekdayUpper, addDays,
@@ -17,25 +17,47 @@ export type HomeActions = {
   openPlace: (placeId: string) => void;
   roulette: (options: string[]) => void;
   photos: (plan: Plan) => void;
+  closeVote: (plan: Plan, step: Step) => void;
+  canClose: (plan: Plan) => boolean; // quien creo el plan o un admin
 };
 
-function VoteStatus({ votes, person }: { votes: StepVotes; person: string }) {
+// Quien voto y quien falta. Con 2 personas, nombre por nombre; con mas,
+// los avatares (los que faltan, apagados) y "3 de 5 votaron".
+function VoteStatus({ step, votes, person }: { step: Step; votes: StepVotes; person: string }) {
+  const r = stepResult(step, votes, person);
+  if (r.voters.length <= 2) {
+    return (
+      <div className="vote-status">
+        {r.voters.map((id) => {
+          const voted = Boolean(votes[id]);
+          const me = id === person;
+          const text = me ? (voted ? "Ya votaste" : "Falta tu voto") : voted ? `${memberName(id)} votó` : `Falta ${memberName(id)}`;
+          return <span key={id} className={voted ? "voted" : "waiting"}><Avatar id={id} small /> {text}</span>;
+        })}
+      </div>
+    );
+  }
   return (
-    <div className="vote-status">
-      {PEOPLE.map((p) => {
-        const voted = Boolean(votes[p]);
-        const me = p === person;
-        const text = me ? (voted ? "Ya votaste" : "Falta tu voto") : voted ? `${p} votó` : `Falta ${p}`;
-        return <span key={p} className={voted ? "voted" : "waiting"}><Avatar person={p} small /> {text}</span>;
-      })}
+    <div className="vote-status many">
+      <span className="vote-avatars">
+        {r.voters.map((id) => <span key={id} className={votes[id] ? "voted" : "waiting"}><Avatar id={id} small /></span>)}
+      </span>
+      <span>{r.votedCount} de {r.voters.length} votaron{r.canVote && !r.myVote ? " · falta tu voto" : ""}</span>
     </div>
   );
 }
 
-function DecidedBy({ label = "Elegido por los dos" }: { label?: string }) {
+// Quien eligio al ganador: "por los dos", "por todos" o "por mayoria".
+function DecidedBy({ step, votes, verb = "Elegido" }: { step: Step; votes: StepVotes; verb?: string }) {
+  const r = stepResult(step, votes);
+  const winner = r.winners[0]?.id;
+  const chose = r.voters.filter((id) => votes[id] === winner);
+  const label = r.unanimous
+    ? `${verb} por ${r.voters.length === 2 ? "los dos" : "todos"}`
+    : `Ganó por mayoría${r.closed ? " · votación cerrada" : ""}`;
   return (
     <div className="decided-by">
-      <span className="mini-pair">{PEOPLE.map((p) => <Avatar key={p} person={p} small />)}</span> {label}
+      <AvatarStack ids={chose} small /> {label}
     </div>
   );
 }
@@ -66,8 +88,17 @@ function StepBody({ plan, step, votes, person, places, actions, voteLabel = "Vot
       <>
         <Pill tone="amber">{pendingPill}</Pill>
         <p className="poll-question">{step.question}</p>
-        <VoteStatus votes={votes} person={person} />
-        <Button onClick={() => actions.vote(plan, step)} className="full">{r.myVote ? "Cambiar mi voto" : voteLabel}</Button>
+        <VoteStatus step={step} votes={votes} person={person} />
+        {r.canVote ? (
+          <Button onClick={() => actions.vote(plan, step)} className="full">{r.myVote ? "Cambiar mi voto" : voteLabel}</Button>
+        ) : (
+          <p className="tie-note">Este plan se creó antes de que llegaras: podrás votar en los próximos.</p>
+        )}
+        {r.voters.length > 2 && r.votedCount > 0 && r.missing.length > 0 && actions.canClose(plan) && (
+          <button className="text-link close-vote" onClick={() => actions.closeVote(plan, step)}>
+            <Icon name="check" size={15} /> Cerrar votación ({r.votedCount} de {r.voters.length})
+          </button>
+        )}
       </>
     );
   }
@@ -76,9 +107,9 @@ function StepBody({ plan, step, votes, person, places, actions, voteLabel = "Vot
       <>
         <Pill tone="amber">Empate</Pill>
         <p className="decision-name"><OptionNames step={step} options={r.winners} /></p>
-        <p className="tie-note">Cada uno eligió algo distinto.</p>
+        <p className="tie-note">{r.voters.length === 2 ? "Cada uno eligió algo distinto." : "Hay empate entre las más votadas."}</p>
         <div className="category-actions">
-          <button className="text-link" onClick={() => actions.vote(plan, step)}>Cambiar mi voto <Icon name="chevron" size={16} /></button>
+          {!r.closed && r.canVote && <button className="text-link" onClick={() => actions.vote(plan, step)}>Cambiar mi voto <Icon name="chevron" size={16} /></button>}
           <button className="text-link" onClick={() => actions.roulette(r.winners.map((o) => o.name))}>Desempatar con ruleta <Icon name="chevron" size={16} /></button>
         </div>
       </>
@@ -91,7 +122,7 @@ function StepBody({ plan, step, votes, person, places, actions, voteLabel = "Vot
       <Pill tone="green"><Icon name="check" size={12} /> Listo</Pill>
       <p className="decision-name">{`${optionEmoji(step, winner)} ${winner.name}`.trim()}</p>
       {place?.area && <p className="meta"><Icon name="pin" size={15} /> {place.area}</p>}
-      <DecidedBy />
+      <DecidedBy step={step} votes={votes} />
       <div className="category-actions">
         {place && <button className="text-link" onClick={() => actions.openPlace(place.id)}>Ver detalles <Icon name="chevron" size={16} /></button>}
         {winner.link && <a className="text-link" href={winner.link} target="_blank" rel="noopener noreferrer">Abrir link <Icon name="chevron" size={16} /></a>}
@@ -116,12 +147,12 @@ function FoodBody({ plan, step, votes, person, places, actions }: {
       <>
         <Pill tone={type.tie ? "amber" : "green"}>{type.tie ? "Empate" : <><Icon name="check" size={12} /> Decidido</>}</Pill>
         <p className="decision-name">{typeName}</p>
-        {type.tie ? <p className="tie-note">Pueden poner restaurantes de los dos tipos en la votación.</p> : <DecidedBy label="Decidido por los dos" />}
+        {type.tie ? <p className="tie-note">Pueden poner restaurantes de los tipos empatados en la votación.</p> : <DecidedBy step={step} votes={votes[step.id] || {}} verb="Decidido" />}
         <div className="next-food-step">
           <span>Ahora falta elegir dónde 👀</span>
           <Button onClick={() => actions.chooseRestaurants(plan, step)}><Icon name="pin" size={17} /> Elegir restaurantes</Button>
         </div>
-        {type.tie && <button className="text-link" onClick={() => actions.vote(plan, step)}>Cambiar mi voto <Icon name="chevron" size={16} /></button>}
+        {type.tie && type.canVote && <button className="text-link" onClick={() => actions.vote(plan, step)}>Cambiar mi voto <Icon name="chevron" size={16} /></button>}
       </>
     );
   }
@@ -155,8 +186,7 @@ function summaryText(plan: Plan, step: Step, votes: PlanVotes) {
     return `${t.winners.map((o) => o.name).join(" o ")} · Falta elegir restaurante`;
   }
   if (!r.allVoted) {
-    const missing = PEOPLE.filter((p) => !(votes[final.id] || {})[p]);
-    return missing.length === 1 ? `Falta el voto de ${missing[0]}` : "Votación en curso";
+    return r.missing.length > 0 && r.missing.length <= 2 ? `Falta el voto de ${namesList(r.missing)}` : `${r.votedCount} de ${r.voters.length} votaron`;
   }
   if (r.tie) return `Empate: ${r.winners.map((o) => o.name).join(" o ")}`;
   return `${r.winners[0].name} ✓`;

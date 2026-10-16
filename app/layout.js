@@ -18,7 +18,7 @@ const dmSans = DM_Sans({
 
 export const metadata = {
   title: "Plan de dos",
-  description: "Para que Stefanny y Alejandro planeen juntos su fin de semana",
+  description: "Planes en pareja, con amigos o en familia: voten qué comer, qué hacer y a dónde ir.",
   // Para que en iPhone "Agregar a inicio" la abra como app (sin barra de
   // Safari) con su ícono: es lo que permite las notificaciones allá.
   appleWebApp: {

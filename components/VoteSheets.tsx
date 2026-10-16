@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { PEOPLE, foodTypeInfo } from "@/config";
+import { foodTypeInfo } from "@/config";
 import type { Place, Plan, Step, StepVotes } from "./types";
-import { Avatar, Button, Icon, Modal, SheetHeader } from "./ui";
-import { OTHER_PERSON, categoryTitle, dayMonthUpper, optionEmoji, placeEmoji, stepResult, weekdayUpper, stepEmoji } from "./planUtils";
+import { Avatar, AvatarStack, Button, Icon, Modal, SheetHeader } from "./ui";
+import { memberName, namesList } from "./members";
+import { categoryTitle, dayMonthUpper, optionEmoji, placeEmoji, stepResult, weekdayUpper, stepEmoji } from "./planUtils";
 
 function eyebrowFor(plan: Plan, step: Step) {
   const label = step.kind === "comida-lugar" ? `${categoryTitle(step).toUpperCase()} · RESTAURANTE` : categoryTitle(step).toUpperCase();
@@ -21,7 +22,9 @@ export function VoteSheet({ plan, step, votes, person, close, submit, roulette }
   roulette: (options: string[]) => void;
 }) {
   const r = stepResult(step, votes, person);
-  const other = OTHER_PERSON(person);
+  const others = r.voters.filter((id) => id !== person);
+  const othersVoted = others.filter((id) => votes[id]);
+  const pair = others.length === 1;
   const [choice, setChoice] = useState(r.myVote || "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -37,19 +40,25 @@ export function VoteSheet({ plan, step, votes, person, close, submit, roulette }
     }
   }
 
+  // Con pareja: "Ana ya votó"; en grupo: "2 de 4 ya votaron".
   const partnerText = r.allVoted
-    ? { title: "Los dos ya votaron", body: "Puedes cambiar tu voto si quieres." }
-    : r.otherVoted
-      ? { title: `${other} ya votó`, body: "Su elección se revelará cuando votes." }
-      : { title: `${other} aún no vota`, body: "Tu voto queda oculto hasta que vote." };
+    ? { title: pair ? "Los dos ya votaron" : "Ya votaron todos", body: "Puedes cambiar tu voto si quieres." }
+    : pair
+      ? othersVoted.length
+        ? { title: `${memberName(others[0])} ya votó`, body: "Su elección se revelará cuando votes." }
+        : { title: `${memberName(others[0])} aún no vota`, body: "Tu voto queda oculto hasta que vote." }
+      : {
+          title: othersVoted.length ? `${othersVoted.length} de ${others.length} ya votaron` : "Nadie más ha votado",
+          body: "Los votos se revelan cuando voten todos.",
+        };
 
   return (
     <Modal close={close}>
       <SheetHeader eyebrow={eyebrowFor(plan, step)} title={step.question} close={close} />
       <div className="partner-voted">
-        <Avatar person={other} />
+        {pair ? <Avatar id={others[0]} /> : <AvatarStack ids={others} max={3} small />}
         <p><strong>{partnerText.title}</strong>{partnerText.body}</p>
-        {r.otherVoted && <Icon name="check" />}
+        {others.length > 0 && othersVoted.length === others.length && <Icon name="check" />}
       </div>
       <div className="poll-options">
         {step.options.map((o) => (
@@ -59,13 +68,13 @@ export function VoteSheet({ plan, step, votes, person, close, submit, roulette }
           </button>
         ))}
       </div>
-      <p className="privacy-note"><Icon name="heart" size={14} /> No verán el voto del otro hasta que ambos elijan.</p>
+      <p className="privacy-note"><Icon name="heart" size={14} /> {pair ? "No verán el voto del otro hasta que ambos elijan." : "Nadie ve los votos hasta que voten todos."}</p>
       {error && <p className="form-error">{error}</p>}
       <Button className="full" disabled={!choice || busy || choice === r.myVote} onClick={save}>
         {busy ? "Guardando..." : r.myVote ? "Cambiar mi voto" : "Guardar mi voto"}
       </Button>
       <Button variant="ghost" className="full" onClick={() => roulette(step.options.map((o) => o.name))}>
-        No nos ponemos de acuerdo · Usar ruleta
+        ¿No se deciden? · Usar ruleta
       </Button>
     </Modal>
   );
@@ -92,24 +101,24 @@ export function ResultSheet({ plan, step, votes, places, close, chooseRestaurant
         <div className="match-result">
           <div className="confetti">✦ <span>♥</span> ✦</div>
           <h3>Empate</h3>
-          <p>Cada uno eligió algo distinto.</p>
+          <p>{r.voters.length === 2 ? "Cada uno eligió algo distinto." : "Las más votadas quedaron iguales."}</p>
           <div className="both-votes">
-            {PEOPLE.map((p) => {
-              const o = step.options.find((opt) => opt.id === votes[p]);
-              return <span key={p}><Avatar person={p} small /> {`${optionEmoji(step, o)} ${o?.name || ""}`.trim()}</span>;
+            {r.voters.filter((id) => votes[id]).map((id) => {
+              const o = step.options.find((opt) => opt.id === votes[id]);
+              return <span key={id}><Avatar id={id} small /> {`${optionEmoji(step, o)} ${o?.name || ""}`.trim()}</span>;
             })}
           </div>
         </div>
         {isFoodType && (
           <>
-            <div className="next-step"><div className="number">2</div><div><strong>También pueden seguir así</strong><p>Pongan restaurantes de los dos tipos en la votación.</p></div></div>
+            <div className="next-step"><div className="number">2</div><div><strong>También pueden seguir así</strong><p>Pongan restaurantes de los tipos empatados en la votación.</p></div></div>
             <Button className="full" onClick={chooseRestaurants}><Icon name="pin" size={18} /> Elegir restaurantes</Button>
           </>
         )}
         <Button variant={isFoodType ? "secondary" : "primary"} className="full" onClick={() => roulette(r.winners.map((o) => o.name))}>
           <Icon name="roulette" size={18} /> Desempatar con ruleta
         </Button>
-        <Button variant="ghost" className="full" onClick={changeVote}>Cambiar mi voto</Button>
+        {!r.closed && <Button variant="ghost" className="full" onClick={changeVote}>Cambiar mi voto</Button>}
       </Modal>
     );
   }
@@ -122,13 +131,13 @@ export function ResultSheet({ plan, step, votes, places, close, chooseRestaurant
 
   return (
     <Modal close={close}>
-      <SheetHeader eyebrow={`${label} DECIDIDA`} title="¡Tenemos un match!" close={close} />
+      <SheetHeader eyebrow={`${label} DECIDIDA`} title={r.unanimous ? "¡Tenemos un match!" : "¡Ya hay ganador!"} close={close} />
       <div className="match-result">
         <div className="confetti">✦ <span>♥</span> ✦</div>
         <span className="result-emoji">{emoji}</span>
         <h3>{winner?.name}</h3>
-        <p>Los dos eligieron lo mismo.</p>
-        <div className="both-votes">{PEOPLE.map((p) => <span key={p}><Avatar person={p} small /> {p}</span>)}</div>
+        <p>{r.unanimous ? (r.voters.length === 2 ? "Los dos eligieron lo mismo." : "Todos eligieron lo mismo.") : `Lo eligieron ${namesList(r.voters.filter((id) => votes[id] === winner?.id))}.`}</p>
+        <div className="both-votes">{r.voters.filter((id) => votes[id] === winner?.id).map((id) => <span key={id}><Avatar id={id} small /> {memberName(id)}</span>)}</div>
       </div>
       {isFoodType ? (
         <>

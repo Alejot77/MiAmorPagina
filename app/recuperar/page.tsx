@@ -4,8 +4,6 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api } from "@/components/api";
 import { Button } from "@/components/ui";
 
-const STORAGE_KEY = "miamor_person";
-
 // Destino del enlace de "olvide mi clave": pide la clave nueva dos veces.
 export default function Recuperar() {
   const [token, setToken] = useState("");
@@ -19,9 +17,9 @@ export default function Recuperar() {
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("token") || "";
     setToken(t);
-    api<{ valid: boolean; person?: string }>(`/api/auth/reset?token=${encodeURIComponent(t)}`)
+    api<{ valid: boolean; name?: string }>(`/api/auth/reset?token=${encodeURIComponent(t)}`)
       .then((res) => {
-        setPerson(res.person || null);
+        setPerson(res.name || null);
         setStatus(res.valid ? "form" : "invalid");
       })
       .catch(() => setStatus("invalid"));
@@ -34,12 +32,7 @@ export default function Recuperar() {
     if (password !== confirm) return setError("Las claves no coinciden");
     setBusy(true);
     try {
-      const res = await api<{ person: string }>("/api/auth/reset", "POST", { token, newPassword: password, newPasswordConfirm: confirm });
-      try {
-        localStorage.setItem(STORAGE_KEY, res.person);
-      } catch {
-        // se ignora: tendra que elegir su nombre al entrar
-      }
+      await api("/api/auth/reset", "POST", { token, newPassword: password, newPasswordConfirm: confirm });
       setStatus("done");
     } catch (err: any) {
       setError(err.message);

@@ -11,8 +11,8 @@ export default function Verificar() {
 
   useEffect(() => {
     const token = new URLSearchParams(window.location.search).get("token");
-    api<{ person: string; email: string }>("/api/auth/verify", "POST", { token })
-      .then((res) => setState({ status: "ok", text: `Listo, ${res.person}: ${res.email} quedó como tu correo para recuperar la clave.` }))
+    api<{ name: string; email: string }>("/api/auth/verify", "POST", { token })
+      .then((res) => setState({ status: "ok", text: `Listo, ${res.name}: ${res.email} quedó como tu correo para recuperar la clave.` }))
       .catch((err) => setState({ status: "error", text: err.message }));
   }, []);
 

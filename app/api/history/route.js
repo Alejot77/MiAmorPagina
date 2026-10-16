@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { isPlanActive, loadAllPlans, loadVotesFor } from "@/lib/planWindow";
-import { requireSession } from "@/lib/session";
+import { hydratePlan, isPlanActive, loadAllPlans, loadVotesFor } from "@/lib/planWindow";
+import { requireMember } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-// Planes que ya pasaron su martes de corte, con sus votos.
+// Planes de la sala que ya pasaron su martes de corte, con sus votos.
 export async function GET(request) {
-  const auth = await requireSession(request);
+  const auth = await requireMember(request);
   if (auth.error) return auth.error;
-  const past = (await loadAllPlans()).filter((p) => !isPlanActive(p));
-  const votes = await loadVotesFor(past);
-  return NextResponse.json({ history: past.map((plan) => ({ plan, votes: votes[plan.id] })) });
+  const past = (await loadAllPlans(auth.gid)).filter((p) => !isPlanActive(p));
+  const votes = await loadVotesFor(auth.gid, past);
+  return NextResponse.json({ history: past.map((plan) => ({ plan: hydratePlan(plan, auth.members), votes: votes[plan.id] })) });
 }

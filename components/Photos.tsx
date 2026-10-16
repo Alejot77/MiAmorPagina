@@ -2,7 +2,8 @@
 
 import { useEffect, useState, type ChangeEvent } from "react";
 import type { Photo } from "./types";
-import { api, checkSession } from "./api";
+import { api, checkSession, groupHeaders } from "./api";
+import { memberName } from "./members";
 import { ConfirmDialog, Icon } from "./ui";
 
 const MAX_SIDE = 1600;
@@ -42,9 +43,9 @@ async function uploadPhoto(planId: string, person: string, file: File): Promise<
   form.append("w", String(w));
   form.append("h", String(h));
   form.append("file", blob, "foto.jpg");
-  const res = await fetch("/api/photos", { method: "POST", body: form });
+  const res = await fetch("/api/photos", { method: "POST", body: form, headers: groupHeaders() });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok && json.code === "no-session") checkSession(res);
+  if (!res.ok) checkSession(res, json);
   if (!res.ok) throw new Error(json.error || "No se pudo subir la foto");
   return json.photos;
 }
@@ -62,7 +63,7 @@ export function PhotoViewer({ photos, index, onIndex, close, onDelete }: {
   return (
     <div className="photo-viewer" onClick={close}>
       <div className="photo-viewer-top" onClick={(e) => e.stopPropagation()}>
-        <span>{index + 1} / {photos.length} · {photo.by}</span>
+        <span>{index + 1} / {photos.length} · {memberName(photo.by)}</span>
         <button className="icon-button" onClick={close} aria-label="Cerrar"><Icon name="close" /></button>
       </div>
       <img src={photo.url} alt="" onClick={(e) => e.stopPropagation()} />

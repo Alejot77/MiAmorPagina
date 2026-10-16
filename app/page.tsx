@@ -1,28 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PEOPLE } from "@/config";
 import { useThemePerson } from "@/lib/useThemePerson";
 import Login from "@/components/Login";
 import AppShell, { type Boot } from "@/components/AppShell";
-import { SESSION_ENDED, api } from "@/components/api";
+import { SESSION_ENDED, api, setApiGroup } from "@/components/api";
 
 // Solo es una pista para pintar el tema de una vez al abrir; quien entra lo
 // decide la sesion del servidor (cookie).
-const HINT_KEY = "miamor_person";
+const HINT_KEY = "pd_user";
 
 function readHint() {
   try {
-    const saved = localStorage.getItem(HINT_KEY);
-    return saved && PEOPLE.includes(saved) ? saved : null;
+    return localStorage.getItem(HINT_KEY);
   } catch {
     return null;
   }
 }
 
-function writeHint(person: string | null) {
+function writeHint(uid: string | null) {
   try {
-    if (person) localStorage.setItem(HINT_KEY, person);
+    if (uid) localStorage.setItem(HINT_KEY, uid);
     else localStorage.removeItem(HINT_KEY);
   } catch {
     // se ignora
@@ -34,13 +32,14 @@ type State = { status: "checking" | "out" | "offline" } | { status: "in"; boot: 
 export default function Page() {
   const [state, setState] = useState<State>({ status: "checking" });
   const [hint, setHint] = useState<string | null>(null);
-  useThemePerson(state.status === "in" ? state.boot.person : state.status === "checking" ? hint : null);
+  // Con sesion se pinta el tema guardado de esa cuenta (AppShell lo mantiene al dia).
+  useThemePerson(state.status === "in" ? state.boot.user.id : state.status === "checking" ? hint : null);
 
   async function loadSession() {
     try {
-      const boot = await api<Boot & { person: string | null }>("/api/session");
-      if (boot.person) {
-        writeHint(boot.person);
+      const boot = await api<Boot & { user: Boot["user"] | null }>("/api/session");
+      if (boot.user) {
+        writeHint(boot.user.id);
         setState({ status: "in", boot: boot as Boot });
       } else {
         setState({ status: "out" });
@@ -55,6 +54,7 @@ export default function Page() {
     loadSession();
     const ended = () => {
       writeHint(null);
+      setApiGroup(null);
       setState({ status: "out" });
     };
     window.addEventListener(SESSION_ENDED, ended);
@@ -64,6 +64,7 @@ export default function Page() {
   async function logout() {
     await api("/api/session", "DELETE").catch(() => {});
     writeHint(null);
+    setApiGroup(null);
     setState({ status: "out" });
   }
 
@@ -80,5 +81,5 @@ export default function Page() {
   }
   if (state.status === "out") return <Login onLogin={() => { setState({ status: "checking" }); loadSession(); }} />;
   if (state.status !== "in") return null;
-  return <AppShell key={state.boot.person} person={state.boot.person} boot={state.boot} onLogout={logout} />;
+  return <AppShell key={state.boot.user.id} boot={state.boot} onLogout={logout} />;
 }

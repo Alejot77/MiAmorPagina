@@ -1,36 +1,28 @@
 import { NextResponse } from "next/server";
-import { PEOPLE } from "@/config";
-import { getAuth, maskEmail, tooSoon, sendResetEmail } from "@/lib/auth";
+import { maskEmail, normalizeEmail, sendResetEmail, tooSoon } from "@/lib/auth";
+import { getUser, userIdByEmail } from "@/lib/users";
+import { ensureMigrated } from "@/lib/migrate";
 import { readJson } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
 
-// POST { person } -> "olvide mi clave": manda un enlace para crear una
-// clave nueva, solo al correo verificado de esa persona.
+// POST { email } -> "olvide mi clave": manda un enlace para crear una clave
+// nueva, solo al correo VERIFICADO de esa cuenta. La respuesta es la misma
+// exista o no la cuenta (para no revelar quien esta registrado).
 export async function POST(request) {
-  const { person } = await readJson(request);
-  if (!PEOPLE.includes(person)) {
-    return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
-  }
-  const record = await getAuth(person);
-  if (!record) {
-    return NextResponse.json({ error: "Todavía no has creado tu cuenta" }, { status: 400 });
-  }
-  if (!record.email) {
-    return NextResponse.json(
-      { error: "Todavía no tienes un correo verificado, así que no podemos recuperar tu clave por correo." },
-      { status: 400 }
-    );
-  }
-  const email = maskEmail(record.email);
-  if (await tooSoon("reset", person)) {
-    return NextResponse.json({ ok: true, email, again: true });
-  }
+  await ensureMigrated();
+  const { email } = await readJson(request);
+  const clean = normalizeEmail(email);
+  const generic = NextResponse.json({ ok: true, email: maskEmail(clean) });
+  const uid = await userIdByEmail(clean);
+  const user = uid && (await getUser(String(uid)));
+  if (!user?.email || user.email !== clean) return generic;
+  if (await tooSoon("reset", user.id)) return generic;
   try {
-    await sendResetEmail(request, person, record.email);
+    await sendResetEmail(request, user);
   } catch (err) {
     console.error("[auth] no se pudo enviar el correo de recuperacion:", err?.message);
     return NextResponse.json({ error: "No pudimos enviar el correo. Intenta de nuevo en un rato." }, { status: 502 });
   }
-  return NextResponse.json({ ok: true, email });
+  return generic;
 }

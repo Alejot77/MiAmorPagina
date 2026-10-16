@@ -1,9 +1,5 @@
-// Nombres de las dos personas que pueden votar.
-// Cambia estos valores si quieren usar otros nombres o apodos.
-export const PEOPLE = ["Stefanny", "Alejandro"];
-
-// Texto de la pestaña Cuenta ("Planeando juntos desde ...").
-export const TOGETHER_SINCE = "diciembre de 2023";
+// Cada persona tiene su cuenta y puede estar en varias salas (pareja,
+// amigos, familia...). Los nombres los escribe cada quien al registrarse.
 
 // Categorias disponibles para armar un plan (comida, actividad, etc).
 // "key" se guarda en la base de datos; label/emoji/question son solo de UI.
@@ -83,15 +79,15 @@ export const THEMES = [
   { id: "azul-noche", name: "Azul noche", dark: true, meta: "#080d16", preview: ["#080d16", "#141d2b", "#5b9bf5", "#f0b45a"] },
 ];
 
-// Tema de cada persona mientras no elija otro.
-export const DEFAULT_THEMES = { Stefanny: "lila", Alejandro: "rojo-noche" };
+// Tema de una cuenta nueva mientras no elija otro.
+export const DEFAULT_THEME = "lila";
 
 export function themeInfo(id) {
   return THEMES.find((t) => t.id === id) || THEMES[0];
 }
 
-export function defaultThemeFor(person) {
-  return DEFAULT_THEMES[person] || THEMES[0].id;
+export function defaultThemeFor() {
+  return DEFAULT_THEME;
 }
 
 // Nombre del grupo (se ve en el encabezado y en el login). Lo pueden

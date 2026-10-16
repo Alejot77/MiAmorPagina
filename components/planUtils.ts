@@ -1,18 +1,15 @@
-import { PEOPLE, FOOD_TYPES, categoryInfo, mealInfo, placeGroupInfo, foodTypeInfo } from "@/config";
+import { FOOD_TYPES, categoryInfo, mealInfo, placeGroupInfo, foodTypeInfo } from "@/config";
 import type { Option, Place, Plan, PlanVotes, Step, StepVotes } from "./types";
 
-export const OTHER_PERSON = (person: string) => PEOPLE.find((p) => p !== person) || "";
-
-export function initialOf(person: string): "s" | "a" {
-  return person === PEOPLE[1] ? "a" : "s";
-}
-
-// Resultado de una categoria: quien voto, y si ya votaron todos, cual gano.
-// Con dos personas, si eligieron distinto queda empate (dos ganadores).
+// Resultado de una categoria. Los votos se ven cuando votaron todos los que
+// votan en ese plan (step.voters) o cuando se cerro la votacion; gana la
+// opcion con mas votos y si varias empatan, es empate.
 export function stepResult(step: Step, votes: StepVotes = {}, person?: string) {
-  const allVoted = PEOPLE.every((p) => Boolean(votes[p]));
+  const voters = step.voters || [];
+  const counted = voters.filter((id) => votes[id]);
+  const allVoted = Boolean(step.closed && counted.length > 0) || (voters.length > 0 && counted.length === voters.length);
   const counts: Record<string, number> = {};
-  Object.values(votes).forEach((id) => (counts[id] = (counts[id] || 0) + 1));
+  counted.forEach((id) => (counts[votes[id]] = (counts[votes[id]] || 0) + 1));
   const max = Math.max(0, ...Object.values(counts));
   const winners = allVoted ? step.options.filter((o) => max > 0 && counts[o.id] === max) : [];
   return {
@@ -20,7 +17,13 @@ export function stepResult(step: Step, votes: StepVotes = {}, person?: string) {
     winners,
     tie: winners.length > 1,
     myVote: person ? votes[person] : undefined,
-    otherVoted: person ? Boolean(votes[OTHER_PERSON(person)]) : false,
+    canVote: person ? voters.includes(person) : false,
+    voters,
+    votedCount: counted.length,
+    missing: voters.filter((id) => !votes[id]),
+    closed: Boolean(step.closed),
+    // Todos eligieron lo mismo (sin cerrar antes).
+    unanimous: allVoted && !step.closed && winners.length === 1 && counts[winners[0].id] === voters.length,
   };
 }
 

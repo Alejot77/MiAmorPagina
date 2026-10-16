@@ -1,15 +1,18 @@
-# Nuestros planes 💜
+# Plan de dos 💜
 
-App para planear los findes entre Stefanny y Alejandro: qué comen, qué hacen, qué toman, a qué juegan, dónde están... Un voto por persona y categoría, y se guarda el historial de todos los planes anteriores.
+App para planear los findes en **salas**: con tu pareja, con amigos, con la familia… Cada sala vota qué comen, qué hacen, qué toman y a dónde van, y guarda su historial, sus sitios, sus fotos y su resumen del mes.
 
 ## Cómo funciona
 
-- Al entrar por primera vez en un dispositivo, cada quien toca su nombre. El celular lo recuerda para la próxima vez ("Cambiar" en la barra de arriba reinicia eso).
-- Un plan tiene una o varias **categorías** (comida, actividad, bebida, juego, lugar, u otra personalizada), cada una con sus propias opciones para votar. Las opciones pueden llevar un link (menú del restaurante, Google Maps, etc).
-- Se puede crear un plan con solo una categoría (ej. "solo comida") o con varias de una vez (un día completo). También se puede **agregar una categoría nueva a un plan que ya existe** — por ejemplo, decidir primero la comida y después agregar "qué hacemos".
-- Cada persona puede votar (y cambiar su voto) por una sola opción en cada categoría. El resultado (quién votó qué y quién va ganando) queda oculto hasta que **ambos** hayan votado esa categoría; mientras tanto solo se ve si ya votaste o si falta el otro voto.
-- Pueden existir **varios planes activos a la vez** — por ejemplo uno para el sábado y otro para el domingo (o lunes, si es festivo). Crear uno nuevo no borra ni reemplaza a los demás; cada uno se edita (✏️) y elimina (🗑️) por separado.
-- Cada plan pasa solo a "Historial" el **martes siguiente a su fecha** (sin importar cuántos planes nuevos se hayan creado mientras tanto). Hasta entonces se queda visible en la página principal.
+- Cada persona tiene su **cuenta** (nombre, correo y clave) y puede estar en varias **salas**.
+- Una sala se **crea** desde la app y se **invita** con un código de 6 letras o con el enlace `/unirme/<código>`. Quien abre el enlace sin cuenta la crea ahí mismo y entra a la sala.
+- Arriba, al tocar el nombre de la sala, se **cambia de sala**. Las salas **fijadas** (📌) salen primero y, si hay dos o más, aparecen como accesos rápidos debajo del encabezado.
+- Un plan tiene una o varias **categorías** (comida —opcionalmente desayuno, almuerzo o cena—, actividad, bebida, entretenimiento, lugar u otra), cada una con sus opciones.
+- **Votación**: los votos quedan ocultos hasta que voten todos los de la sala. Gana la opción con más votos; si varias empatan, hay empate (y está la ruleta). En salas de más de 2 personas, quien creó el plan o un admin puede **cerrar la votación** antes si alguien no vota. En pareja se decide cuando votan los dos.
+- Votan quienes estaban en la sala cuando se creó el plan: quien entra después vota en los planes nuevos, y quien se va deja de contar.
+- Pueden existir **varios planes activos a la vez** (sábado, domingo, festivo…). Cada plan pasa a "Historial" el **martes siguiente a su fecha**.
+- **Puntos por sala**: cada categoría que agregas suma puntos; al llegar a la meta ganas el premio de la sala (por defecto «postre»). Hay un ranking por sala.
+- **Admins**: quien crea la sala la administra. Puede renombrarla, cambiar el código, cambiar las reglas de puntos, nombrar otros admins y sacar personas. Cualquiera puede salir de una sala; si sale la última persona, la sala se borra con todo lo suyo.
 
 ## Desplegar en Vercel
 
@@ -28,31 +31,25 @@ vercel env pull .env.local   # trae las credenciales de Upstash desde Vercel
 npm run dev
 ```
 
-## Cambiar los nombres
+## Cuentas (correo + clave)
 
-Edita [config.js](config.js) y cambia los valores de `PEOPLE`.
+Cualquiera puede **crear su cuenta** con nombre, correo y clave (6 o más caracteres). Le llega un correo para confirmar ese correo (vence en 24 horas); mientras no lo confirme, la app muestra un aviso para reenviarlo. Un correo sin confirmar por más de 24 horas se libera para que nadie "aparte" el correo de otra persona.
 
-## Cuenta por persona (correo + clave)
+La clave se guarda con hash (scrypt), nunca en texto plano. El correo verificado es el único que sirve para recuperar la clave:
 
-La primera vez que alguien entra a su nombre, la app le pide **correo y
-clave**. Le llega un correo con un enlace para confirmar ese correo
-(vence en 24 horas). Las cuentas de antes del correo lo vinculan la
-siguiente vez que entran (o desde **Cuenta → Mi correo**); mientras no
-esté confirmado, la app muestra un aviso para reenviar el enlace.
+- **¿Olvidaste tu clave?** manda un enlace a ese correo para crear una clave nueva (1 hora, un solo uso). La respuesta es la misma exista o no la cuenta.
+- **Cuenta → Mi correo** lo cambia (pide la clave); el anterior sigue sirviendo hasta que se confirme el nuevo.
+- **Cuenta → Mi clave** cambia la clave y cierra la sesión en los otros celulares.
 
-La clave se guarda con hash (scrypt), nunca en texto plano. El correo
-verificado es el único que sirve para recuperar la clave:
+### Paso a salas (migración automática)
 
-- **¿Olvidaste tu clave?** (en la pantalla de la clave) manda un enlace a
-  ese correo para crear una clave nueva. Vence en 1 hora y sirve una sola
-  vez. Sin correo verificado no se puede recuperar por correo: en ese caso
-  se borra a mano la fila `auth:<nombre>` en el dashboard de Upstash y
-  la persona crea su cuenta otra vez.
-- **Cuenta → Mi correo** permite cambiarlo (pide la clave actual). El
-  correo nuevo queda pendiente hasta que se confirme; mientras tanto el
-  anterior sigue sirviendo para recuperar la clave.
-- **Cuenta → Mi clave** cambia la clave (pide la actual). Las claves
-  nuevas deben tener al menos 6 caracteres.
+La primera vez que alguien abre esta versión, la app pasa sola los datos de antes (Stefanny y Alejandro) a una cuenta por persona —con su misma clave, correo, tema y avisos— y a la sala de pareja con todos sus planes, votos, fotos, sitios y puntos. Las sesiones abiertas siguen funcionando. Los datos viejos no se borran: quedan como respaldo (`plan:*`, `votes:*`, `auth:*`…).
+
+### Datos en Upstash
+
+- `user:<id>`, `user-email:<correo>` → cuenta; `user-groups:<id>` → sus salas.
+- `group:<id>` (nombre, admins, código, reglas), `members:<id>`, `invite:<código>`, `groups`.
+- Todo lo de una sala va bajo `g:<sala>:…` (`plans`, `plan:<id>`, `votes:<plan>:<paso>`, `places`, `place:<id>`, `photos:<plan>`, `points:<cuenta>`), así una sala nunca toca los datos de otra.
 
 ### Sesiones y seguridad
 
@@ -60,8 +57,9 @@ verificado es el único que sirve para recuperar la clave:
   azar en una cookie `httpOnly` (el JavaScript de la página no la puede
   leer) con `SameSite=Lax`. En la base solo se guarda su hash
   (`session:<hash>`), y vence a los 180 días sin usar la app.
-- **Todas** las rutas de la API toman a la persona de la sesión, nunca de
-  lo que mande el navegador. Sin sesión responden 401 (salvo la pantalla
+- **Todas** las rutas de la API toman la cuenta de la sesión, nunca de
+  lo que mande el navegador. Las de una sala reciben la sala en el
+  encabezado `X-Group` y verifican que la cuenta sea miembro. Sin sesión responden 401 (salvo la pantalla
   de entrada, "olvidé mi clave", los enlaces de los correos y el cron).
   Las que cambian datos rechazan peticiones de otros sitios (`Origin`).
 - 8 claves equivocadas seguidas bloquean esa cuenta 15 minutos.
@@ -123,9 +121,8 @@ Configuración (una sola vez):
 
 Cada persona elige su tema en **Cuenta → Tema** (Lila, Rosa, Océano,
 Lila noche, Rojo noche, Azul noche). Solo cambia cómo lo ve esa persona,
-se guarda en la base (`theme:<nombre>`) para que la siga en otros
-celulares y en el dispositivo para que abra sin parpadeo. Por defecto:
-Stefanny → Lila, Alejandro → Rojo noche. Los temas están en `THEMES`
+se guarda en la cuenta (`user:<id>`) para que la siga en otros
+celulares y en el dispositivo para que abra sin parpadeo. Por defecto: Lila. Los temas están en `THEMES`
 (config.js) y sus colores en `app/redesign.css` (`[data-theme=...]`).
 
 ## Notificaciones

@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CATEGORIES, FOOD_TYPES, MEALS, PEOPLE, categoryInfo, foodTypeInfo, mealInfo } from "@/config";
+import { CATEGORIES, FOOD_TYPES, MEALS, categoryInfo, foodTypeInfo, mealInfo } from "@/config";
+import { getMembers } from "./members";
 import type { Place, Plan, Step } from "./types";
 import { api } from "./api";
-import { Avatar, Button, Icon, Pill } from "./ui";
+import { AvatarStack, Button, Icon, Pill } from "./ui";
 import { addDays, dayMonthUpper, longDate, parseDate, placeEmoji, rootSteps, shortDayUpper, toDateStr, todayStr, upcomingSaturday, weekdayUpper } from "./planUtils";
 import { holidayOn, holidaysBetween } from "./holidays";
 
@@ -367,7 +368,7 @@ export default function CreateFlow({ mode, person, plan, repeatFrom, presetDate,
               <p className="date-warning">Quitar {removedCategories.map((c) => categoryInfo(c).label).join(", ")} borra sus votos.</p>
             )}
             <div className="selection-note">
-              <span className="mini-pair">{PEOPLE.map((p) => <Avatar key={p} person={p} small />)}</span>
+              <AvatarStack ids={getMembers().map((m) => m.id)} small />
               <p><strong>{categories.length || "Ninguna"} {categories.length === 1 ? "decisión seleccionada" : "decisiones seleccionadas"}</strong>El finde se adapta a ustedes, no al revés.</p>
             </div>
           </section>

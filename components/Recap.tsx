@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
-import { PEOPLE } from "@/config";
 import type { Photo, RecapEntry, RecapList } from "./types";
 import { api } from "./api";
-import { Avatar, Button, Icon } from "./ui";
+import { AvatarStack, Button, Icon } from "./ui";
+import { getMembers, memberName } from "./members";
 import { PhotoViewer } from "./Photos";
 import { memoryTitle, optionEmoji, stepEmoji, parseDate, rootSteps, stepResult, terminalStep, weekdayUpper } from "./planUtils";
 
@@ -43,7 +43,8 @@ function buildRecap(entries: RecapEntry[]) {
   }
 
   const photos = entries.flatMap((e) => e.photos.map((p) => ({ ...p, date: e.plan.weekend })));
-  const creators = PEOPLE.map((p) => ({ person: p, count: entries.filter((e) => e.plan.createdBy === p).length }))
+  const creatorIds = [...new Set(entries.map((e) => e.plan.createdBy))];
+  const creators = creatorIds.map((id) => ({ person: id, count: entries.filter((e) => e.plan.createdBy === id).length }))
     .sort((a, b) => b.count - a.count);
   const counts: Record<string, { pick: Pick; n: number }> = {};
   for (const p of picks) {
@@ -121,7 +122,7 @@ export function RecapStories({ month, close }: { month: string; close: () => voi
           <span className="recap-eyebrow">SU RESUMEN DE</span>
           <h1 className="recap-month">{capital(name)}</h1>
           <span className="recap-year">{year}</span>
-          <div className="avatar-pair recap-pair">{PEOPLE.map((p) => <Avatar key={p} person={p} />)}</div>
+          <div className="recap-pair"><AvatarStack ids={getMembers().map((m) => m.id)} max={6} /></div>
           <p className="recap-tap">Toca para empezar →</p>
         </>
       ),
@@ -233,8 +234,8 @@ export function RecapStories({ month, close }: { month: string; close: () => voi
     }
     const facts: string[] = [];
     const top = r.creators[0];
-    if (top && top.count > 0 && top.count !== r.creators[1]?.count) facts.push(`${top.person} propuso ${top.count} de ${r.outings} ${r.outings === 1 ? "plan" : "planes"} 🙋`);
-    else if (top && top.count > 0) facts.push(`Los dos propusieron la misma cantidad de planes 🤝`);
+    if (top && top.count > 0 && top.count !== r.creators[1]?.count) facts.push(`${memberName(top.person)} propuso ${top.count} de ${r.outings} ${r.outings === 1 ? "plan" : "planes"} 🙋`);
+    else if (top && top.count > 0) facts.push(`${r.creators.length === 2 ? "Los dos propusieron" : "Varios propusieron"} la misma cantidad de planes 🤝`);
     if (r.repeated) facts.push(`${r.repeated.pick.emoji} ${r.repeated.pick.name} se repitió ${r.repeated.n} veces`);
     if (r.agreement === 100 && r.decided > 1) facts.push("Coincidieron en todo. Cero empates 💘");
     if (facts.length > 0) {
@@ -255,7 +256,7 @@ export function RecapStories({ month, close }: { month: string; close: () => voi
       tone: "end",
       body: (
         <>
-          <div className="avatar-pair recap-pair">{PEOPLE.map((p) => <Avatar key={p} person={p} />)}</div>
+          <div className="recap-pair"><AvatarStack ids={getMembers().map((m) => m.id)} max={6} /></div>
           <h2>Gracias por {name} 💜</h2>
           <p className="recap-date">Nos vemos en {nextName}.</p>
           <div className="recap-actions" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>

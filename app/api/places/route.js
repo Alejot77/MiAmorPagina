@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
-import { PEOPLE, FOOD_TYPES, PLACE_GROUPS } from "@/config";
-import { loadAllPlans, loadVotesFor, todayStrBogota } from "@/lib/planWindow";
-import { requireSession } from "@/lib/session";
+import { FOOD_TYPES, PLACE_GROUPS } from "@/config";
+import { gk } from "@/lib/groups";
+import { loadAllPlans, loadVotesFor, planVoters, stepOutcome, todayStrBogota } from "@/lib/planWindow";
+import { requireMember } from "@/lib/session";
 import { LIMITS, cleanNote, cleanText, isId, readJson, safeLink } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
@@ -18,17 +19,18 @@ const FIELDS = {
 };
 
 // Visitas = cuantos planes ya pasados (su fecha ya llego) terminaron eligiendo
-// ese sitio, con los dos votando por el. No se guarda: se calcula al leer.
-async function countVisits() {
+// ese sitio (votacion decidida, sin empate). No se guarda: se calcula al leer.
+async function countVisits(gid, members) {
   const today = todayStrBogota();
-  const past = (await loadAllPlans()).filter((p) => p.weekend <= today);
-  const votes = await loadVotesFor(past);
+  const past = (await loadAllPlans(gid)).filter((p) => p.weekend <= today);
+  const votes = await loadVotesFor(gid, past);
   const visits = {};
   for (const plan of past) {
+    const voters = planVoters(plan, members);
     for (const step of plan.steps) {
-      const chosen = PEOPLE.map((p) => votes[plan.id]?.[step.id]?.[p]);
-      if (chosen.some((v) => !v) || new Set(chosen).size !== 1) continue;
-      const option = step.options.find((o) => o.id === chosen[0]);
+      const { winners } = stepOutcome(step, votes[plan.id]?.[step.id], voters);
+      if (winners.length !== 1) continue;
+      const option = winners[0];
       // Los planes viejos guardaban el id del sitio como id de la opcion.
       const placeId = option?.placeId || (option?.id?.startsWith("place") ? option.id : null);
       if (placeId) visits[placeId] = (visits[placeId] || 0) + 1;
@@ -38,11 +40,11 @@ async function countVisits() {
 }
 
 export async function GET(request) {
-  const auth = await requireSession(request);
+  const auth = await requireMember(request);
   if (auth.error) return auth.error;
-  const ids = (await kv.lrange("places", 0, -1)) || [];
+  const ids = (await kv.lrange(gk(auth.gid, "places"), 0, -1)) || [];
   if (ids.length === 0) return NextResponse.json({ places: [] });
-  const [raw, visits] = await Promise.all([kv.mget(...ids.map((id) => `place:${id}`)), countVisits()]);
+  const [raw, visits] = await Promise.all([kv.mget(...ids.map((id) => gk(auth.gid, "place", id))), countVisits(auth.gid, auth.members)]);
   const places = (raw || []).filter(Boolean).map((p) => ({
     ...p,
     group: validGroup(p.group) ? p.group : "comida",
@@ -52,7 +54,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const auth = await requireSession(request);
+  const auth = await requireMember(request);
   if (auth.error) return auth.error;
   const body = await readJson(request);
   const name = cleanText(body.name, LIMITS.name);
@@ -67,7 +69,7 @@ export async function POST(request) {
     group: validGroup(body.group) ? body.group : "comida",
     category: validFoodType(body.category) ? body.category : "otro",
     favorite: Boolean(body.favorite),
-    createdBy: auth.person,
+    createdBy: auth.uid,
     createdAt: new Date().toISOString(),
   };
   for (const [field, clean] of Object.entries(FIELDS)) {
@@ -75,21 +77,21 @@ export async function POST(request) {
     if (value) place[field] = value;
   }
 
-  await Promise.all([kv.set(`place:${id}`, place), kv.lpush("places", id)]);
+  await Promise.all([kv.set(gk(auth.gid, "place", id), place), kv.lpush(gk(auth.gid, "places"), id)]);
   return NextResponse.json({ place });
 }
 
 // Edicion parcial: solo cambia los campos que vienen en el body (asi el
 // corazon de "favorito" puede actualizar solo ese campo).
 export async function PATCH(request) {
-  const auth = await requireSession(request);
+  const auth = await requireMember(request);
   if (auth.error) return auth.error;
   const body = await readJson(request);
   if (!isId(body.placeId)) {
     return NextResponse.json({ error: "Falta el sitio a editar" }, { status: 400 });
   }
 
-  const existing = await kv.get(`place:${body.placeId}`);
+  const existing = await kv.get(gk(auth.gid, "place", body.placeId));
   if (!existing) {
     return NextResponse.json({ error: "Ese sitio no existe" }, { status: 404 });
   }
@@ -112,17 +114,17 @@ export async function PATCH(request) {
     else delete updated[field];
   }
 
-  await kv.set(`place:${body.placeId}`, updated);
+  await kv.set(gk(auth.gid, "place", body.placeId), updated);
   return NextResponse.json({ place: updated });
 }
 
 export async function DELETE(request) {
-  const auth = await requireSession(request);
+  const auth = await requireMember(request);
   if (auth.error) return auth.error;
   const { placeId } = await readJson(request);
   if (!isId(placeId)) {
     return NextResponse.json({ error: "Falta el sitio a eliminar" }, { status: 400 });
   }
-  await Promise.all([kv.lrem("places", 0, placeId), kv.del(`place:${placeId}`)]);
+  await Promise.all([kv.lrem(gk(auth.gid, "places"), 0, placeId), kv.del(gk(auth.gid, "place", placeId))]);
   return NextResponse.json({ ok: true });
 }

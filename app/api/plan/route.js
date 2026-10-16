@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
-import { CATEGORIES, PEOPLE, categoryInfo, mealInfo, FOOD_TYPES } from "@/config";
-import { getSettings } from "@/lib/settings";
-import { sendPushToPerson, otherPerson } from "@/lib/push";
+import { CATEGORIES, categoryInfo, mealInfo, FOOD_TYPES } from "@/config";
+import { gk, groupSettings } from "@/lib/groups";
+import { getUser } from "@/lib/users";
+import { notifyGroup } from "@/lib/push";
 import { deletePlanPhotos } from "@/lib/photos";
 import { loadActivePlans } from "@/lib/planWindow";
-import { requireSession } from "@/lib/session";
+import { requireMember } from "@/lib/session";
 import { LIMITS, cleanText, isDateStr, isId, readJson, safeLink } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
@@ -88,16 +89,15 @@ function normalizeSteps(rawSteps) {
 const countCategories = (steps) => steps.filter((st) => !st.generatedFrom).length;
 
 export async function GET(request) {
-  const auth = await requireSession(request);
+  const auth = await requireMember(request);
   if (auth.error) return auth.error;
-  const { plans, votes } = await loadActivePlans();
-  return NextResponse.json({ plans, votes, people: PEOPLE });
+  return NextResponse.json(await loadActivePlans(auth.gid, auth.members));
 }
 
 export async function POST(request) {
-  const auth = await requireSession(request);
+  const auth = await requireMember(request);
   if (auth.error) return auth.error;
-  const person = auth.person;
+  const { gid, uid: person, group, members } = auth;
   const { weekend, steps } = await readJson(request);
 
   if (!isDateStr(weekend)) {
@@ -106,7 +106,7 @@ export async function POST(request) {
   const normalized = normalizeSteps(steps);
   if (!normalized) return NextResponse.json({ error: NEEDS_OPTIONS }, { status: 400 });
 
-  const { pointsPerCategory } = await getSettings();
+  const { pointsPerCategory } = groupSettings(group);
   const id = Date.now().toString();
   const categoryCount = countCategories(normalized);
   const pointsEarned = categoryCount * pointsPerCategory;
@@ -117,28 +117,22 @@ export async function POST(request) {
     createdBy: person,
     createdAt: new Date().toISOString(),
     pointsAwardedFor: categoryCount,
+    voters: members, // quienes votan: los miembros de la sala al crearlo
   };
 
-  await kv.set(`plan:${id}`, plan);
-  await Promise.all([kv.lpush("plans", id), kv.incrby(`points:${person}`, pointsEarned)]);
+  await kv.set(gk(gid, "plan", id), plan);
+  await Promise.all([kv.lpush(gk(gid, "plans"), id), kv.incrby(gk(gid, "points", person), pointsEarned)]);
 
-  const target = otherPerson(person);
-  if (target) {
-    await sendPushToPerson(target, {
-      title: "🎉 Nuevo plan",
-      body: `${person} creó un plan para este finde. ¡Ve a votar!`,
-      url: "/",
-    });
-  }
+  const me = await getUser(person);
+  await notifyGroup(group, members, person, { title: "🎉 Nuevo plan", body: `${me?.name || "Alguien"} creó un plan. ¡Ve a votar!` });
 
-  const { plans, votes } = await loadActivePlans();
-  return NextResponse.json({ plans, votes, pointsEarned });
+  return NextResponse.json({ ...(await loadActivePlans(auth.gid, auth.members)), pointsEarned });
 }
 
 export async function PATCH(request) {
-  const auth = await requireSession(request);
+  const auth = await requireMember(request);
   if (auth.error) return auth.error;
-  const person = auth.person;
+  const { gid, uid: person, group, members } = auth;
   const { planId, weekend, steps } = await readJson(request);
 
   if (!isId(planId)) {
@@ -147,16 +141,18 @@ export async function PATCH(request) {
   if (weekend !== undefined && !isDateStr(weekend)) {
     return NextResponse.json({ error: "Fecha inválida" }, { status: 400 });
   }
-  const existing = await kv.get(`plan:${planId}`);
+  const existing = await kv.get(gk(gid, "plan", planId));
   if (!existing) {
     return NextResponse.json({ error: "Ese plan no existe" }, { status: 404 });
   }
   const normalized = normalizeSteps(steps);
   if (!normalized) return NextResponse.json({ error: NEEDS_OPTIONS }, { status: 400 });
+  // Las votaciones que ya se cerraron siguen cerradas.
+  for (const st of normalized) if (existing.steps.find((o) => o.id === st.id)?.closed) st.closed = true;
 
   // Puntos: solo se premian categorias nuevas por encima del maximo ya
   // premiado para este plan, para no repetir puntos al solo editar texto.
-  const { pointsPerCategory } = await getSettings();
+  const { pointsPerCategory } = groupSettings(group);
   const prevAwarded = existing.pointsAwardedFor || 0;
   const newCount = countCategories(normalized);
   const pointsEarned = Math.max(0, newCount - prevAwarded) * pointsPerCategory;
@@ -169,66 +165,57 @@ export async function PATCH(request) {
     updatedAt: new Date().toISOString(),
     pointsAwardedFor: Math.max(prevAwarded, newCount),
   };
-  await kv.set(`plan:${planId}`, updated);
-  if (pointsEarned > 0) await kv.incrby(`points:${person}`, pointsEarned);
+  await kv.set(gk(gid, "plan", planId), updated);
+  if (pointsEarned > 0) await kv.incrby(gk(gid, "points", person), pointsEarned);
 
   // Se borran los votos de categorias que ya no existen y los que apuntan a
   // una opcion que ya no existe en su categoria.
   const newStepIds = new Set(normalized.map((s) => s.id));
   const removed = existing.steps.filter((s) => !newStepIds.has(s.id));
-  const currentVotes = await Promise.all(normalized.map((s) => kv.hgetall(`votes:${planId}:${s.id}`)));
+  const currentVotes = await Promise.all(normalized.map((s) => kv.hgetall(gk(gid, "votes", planId, s.id))));
   await Promise.all([
-    ...removed.map((s) => kv.del(`votes:${planId}:${s.id}`)),
+    ...removed.map((s) => kv.del(gk(gid, "votes", planId, s.id))),
     ...normalized.map((step, i) => {
       const validIds = new Set(step.options.map((o) => o.id));
       const orphans = Object.entries(currentVotes[i] || {}).filter(([, v]) => !validIds.has(v)).map(([voter]) => voter);
-      return orphans.length > 0 ? kv.hdel(`votes:${planId}:${step.id}`, ...orphans) : null;
+      return orphans.length > 0 ? kv.hdel(gk(gid, "votes", planId, step.id), ...orphans) : null;
     }),
   ]);
 
-  const target = otherPerson(person);
-  if (target) {
-    const oldStepIds = new Set(existing.steps.map((s) => s.id));
-    const added = normalized.filter((s) => !oldStepIds.has(s.id));
-    await sendPushToPerson(
-      target,
-      added.length > 0
-        ? {
-            title: "➕ Nueva pregunta en el plan",
-            body:
-              added.length === 1
-                ? `${person} agregó "${added[0].question}". ¡Ve a votar!`
-                : `${person} agregó ${added.length} preguntas al plan. ¡Ve a votar!`,
-            url: "/",
-          }
-        : {
-            title: "✏️ Plan editado",
-            body: `${person} hizo cambios en el plan. ¡Échale un ojo!`,
-            url: "/",
-          }
-    );
-  }
+  const name = (await getUser(person))?.name || "Alguien";
+  const oldStepIds = new Set(existing.steps.map((s) => s.id));
+  const added = normalized.filter((s) => !oldStepIds.has(s.id));
+  await notifyGroup(
+    group,
+    members,
+    person,
+    added.length > 0
+      ? {
+          title: "➕ Nueva pregunta en el plan",
+          body: added.length === 1 ? `${name} agregó "${added[0].question}". ¡Ve a votar!` : `${name} agregó ${added.length} preguntas al plan. ¡Ve a votar!`,
+        }
+      : { title: "✏️ Plan editado", body: `${name} hizo cambios en el plan. ¡Échale un ojo!` }
+  );
 
-  const { plans, votes } = await loadActivePlans();
-  return NextResponse.json({ plans, votes, pointsEarned });
+  return NextResponse.json({ ...(await loadActivePlans(auth.gid, auth.members)), pointsEarned });
 }
 
 export async function DELETE(request) {
-  const auth = await requireSession(request);
+  const auth = await requireMember(request);
   if (auth.error) return auth.error;
   const { planId } = await readJson(request);
   if (!isId(planId)) {
     return NextResponse.json({ error: "Falta el plan a eliminar" }, { status: 400 });
   }
 
-  const plan = await kv.get(`plan:${planId}`);
+  const gid = auth.gid;
+  const plan = await kv.get(gk(gid, "plan", planId));
   await Promise.all([
-    kv.lrem("plans", 0, planId),
-    kv.del(`plan:${planId}`),
-    ...(plan?.steps || []).map((step) => kv.del(`votes:${planId}:${step.id}`)),
-    deletePlanPhotos(planId),
+    kv.lrem(gk(gid, "plans"), 0, planId),
+    kv.del(gk(gid, "plan", planId)),
+    ...(plan?.steps || []).map((step) => kv.del(gk(gid, "votes", planId, step.id))),
+    deletePlanPhotos(gid, planId),
   ]);
 
-  const { plans, votes } = await loadActivePlans();
-  return NextResponse.json({ plans, votes });
+  return NextResponse.json(await loadActivePlans(auth.gid, auth.members));
 }

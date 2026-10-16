@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
-import { PEOPLE, FOOD_TYPES, mealInfo } from "@/config";
-import { sendPushToPerson, otherPerson } from "@/lib/push";
-import { isPlanActive, loadActivePlans } from "@/lib/planWindow";
-import { requireSession } from "@/lib/session";
+import { FOOD_TYPES, mealInfo } from "@/config";
+import { gk } from "@/lib/groups";
+import { getUser } from "@/lib/users";
+import { notifyGroup } from "@/lib/push";
+import { isPlanActive, loadActivePlans, planVoters, stepOutcome } from "@/lib/planWindow";
+import { requireMember } from "@/lib/session";
 import { LIMITS, cleanText, isId, readJson, safeLink } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
@@ -12,15 +14,15 @@ export const dynamic = "force-dynamic";
 // eligen a mano que restaurantes entran a la votacion de "¿Dónde comemos?".
 // Los que agregan escritos a mano se pueden guardar tambien en Sitios.
 export async function POST(request) {
-  const auth = await requireSession(request);
+  const auth = await requireMember(request);
   if (auth.error) return auth.error;
-  const person = auth.person;
+  const { gid, uid: person, group, members } = auth;
   const { planId, stepId, restaurants } = await readJson(request);
   if (!isId(planId) || !isId(stepId)) {
     return NextResponse.json({ error: "Este plan ya no está activo" }, { status: 400 });
   }
 
-  const plan = await kv.get(`plan:${planId}`);
+  const plan = await kv.get(gk(gid, "plan", planId));
   if (!plan || !isPlanActive(plan)) {
     return NextResponse.json({ error: "Este plan ya no está activo" }, { status: 400 });
   }
@@ -30,9 +32,10 @@ export async function POST(request) {
     return NextResponse.json({ error: "Esa categoría no es de comida en 2 pasos" }, { status: 400 });
   }
 
-  const typeVotes = (await kv.hgetall(`votes:${planId}:${stepId}`)) || {};
-  if (!PEOPLE.every((p) => Boolean(typeVotes[p]))) {
-    return NextResponse.json({ error: "Primero tienen que votar los dos el tipo de comida" }, { status: 400 });
+  const typeVotes = (await kv.hgetall(gk(gid, "votes", planId, stepId))) || {};
+  const typeOutcome = stepOutcome(typeStep, typeVotes, planVoters(plan, members));
+  if (!typeOutcome.allVoted) {
+    return NextResponse.json({ error: "Primero tiene que decidirse el tipo de comida" }, { status: 400 });
   }
 
   const seen = new Set();
@@ -56,7 +59,7 @@ export async function POST(request) {
     ? plan.steps.find((s) => s.id === typeStep.generatedStepId)
     : null;
   if (existingGen) {
-    const genVotes = (await kv.hgetall(`votes:${planId}:${existingGen.id}`)) || {};
+    const genVotes = (await kv.hgetall(gk(gid, "votes", planId, existingGen.id))) || {};
     if (Object.keys(genVotes).length > 0) {
       return NextResponse.json(
         { error: "Ya empezaron a votar el restaurante; no se puede cambiar la lista" },
@@ -66,9 +69,7 @@ export async function POST(request) {
   }
 
   // Los restaurantes nuevos se guardan con el tipo de comida que gano.
-  const counts = {};
-  Object.values(typeVotes).forEach((id) => (counts[id] = (counts[id] || 0) + 1));
-  const winnerId = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+  const winnerId = typeOutcome.winners[0]?.id;
   const foodType = FOOD_TYPES.some((f) => f.key === winnerId) ? winnerId : "otro";
 
   const now = Date.now();
@@ -78,7 +79,7 @@ export async function POST(request) {
       const id = `place${now}${i}`;
       r.placeId = id;
       return Promise.all([
-        kv.set(`place:${id}`, {
+        kv.set(gk(gid, "place", id), {
           id,
           name: r.name,
           group: "comida",
@@ -87,7 +88,7 @@ export async function POST(request) {
           createdBy: person,
           createdAt: new Date().toISOString(),
         }),
-        kv.lpush("places", id),
+        kv.lpush(gk(gid, "places"), id),
       ]);
     })
   );
@@ -119,17 +120,13 @@ export async function POST(request) {
       .concat(newStep);
   }
 
-  await kv.set(`plan:${planId}`, { ...plan, steps });
+  await kv.set(gk(gid, "plan", planId), { ...plan, steps });
 
-  const target = otherPerson(person);
-  if (target) {
-    await sendPushToPerson(target, {
-      title: "🍽️ ¿Dónde comemos?",
-      body: `${person} eligió los restaurantes. ¡Ve a votar!`,
-      url: "/",
-    });
-  }
+  const name = (await getUser(person))?.name || "Alguien";
+  await notifyGroup(group, members, person, {
+    title: `🍽️ ${mealInfo(typeStep.meal)?.where || "¿Dónde comemos?"}`,
+    body: `${name} eligió los restaurantes. ¡Ve a votar!`,
+  });
 
-  const { plans, votes } = await loadActivePlans();
-  return NextResponse.json({ plans, votes });
+  return NextResponse.json(await loadActivePlans(gid, members));
 }

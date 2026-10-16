@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { initialOf } from "./planUtils";
+import { member } from "./members";
 
 export type IconName =
   | "home" | "calendar" | "pin" | "clock" | "plus" | "dots" | "chevron" | "check" | "heart"
@@ -43,9 +43,26 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   );
 }
 
-export function Avatar({ person, small = false }: { person: string; small?: boolean }) {
-  const initial = initialOf(person);
-  return <span className={`avatar avatar-${initial} ${small ? "avatar-small" : ""}`}>{person[0]}</span>;
+// Avatar de un miembro de la sala (por id) o de alguien con nombre y color.
+export function Avatar({ id, name, color, small = false }: { id?: string; name?: string; color?: string; small?: boolean }) {
+  const m = id ? member(id) : null;
+  const label = name || m?.name || "?";
+  return (
+    <span className={`avatar ${small ? "avatar-small" : ""}`} style={{ background: color || m?.color || "#9a8fa6" }} title={label}>
+      {label.trim().charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
+// Varios avatares encimados; si son muchos, "+3" al final.
+export function AvatarStack({ ids, max = 4, small = false }: { ids: string[]; max?: number; small?: boolean }) {
+  const shown = ids.slice(0, max);
+  return (
+    <span className={small ? "mini-pair" : "avatar-pair"}>
+      {shown.map((id) => <Avatar key={id} id={id} small={small} />)}
+      {ids.length > max && <span className={`avatar avatar-more ${small ? "avatar-small" : ""}`}>+{ids.length - max}</span>}
+    </span>
+  );
 }
 
 export function Button({
@@ -74,10 +91,10 @@ export function Pill({ children, tone = "lavender" }: { children: ReactNode; ton
   return <span className={`pill pill-${tone}`}>{children}</span>;
 }
 
-export function PointsProgress({ points, goal, person }: { points: number; goal: number; person: string }) {
+export function PointsProgress({ points, goal, color }: { points: number; goal: number; color: string }) {
   const active = Math.min(10, Math.floor((points / Math.max(goal, 1)) * 10));
   return (
-    <div className={`points-progress points-${initialOf(person)}`} aria-label={`${points} de ${goal} puntos`}>
+    <div className="points-progress" style={{ ["--pp-color" as string]: color }} aria-label={`${points} de ${goal} puntos`}>
       {Array.from({ length: 10 }, (_, i) => <i key={i} className={i < active ? "active" : ""} />)}
     </div>
   );

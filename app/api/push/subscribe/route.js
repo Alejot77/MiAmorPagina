@@ -29,7 +29,7 @@ export async function POST(request) {
     return NextResponse.json({ error: "Suscripción inválida" }, { status: 400 });
   }
   const { endpoint, keys } = subscription;
-  await kv.hset(`push:${auth.person}`, { [endpoint]: { endpoint, keys } });
+  await kv.hset(`push:${auth.uid}`, { [endpoint]: { endpoint, keys } });
   return NextResponse.json({ ok: true });
 }
 
@@ -37,6 +37,6 @@ export async function DELETE(request) {
   const auth = await requireSession(request);
   if (auth.error) return auth.error;
   const { endpoint } = await readJson(request);
-  if (typeof endpoint === "string" && endpoint) await kv.hdel(`push:${auth.person}`, endpoint);
+  if (typeof endpoint === "string" && endpoint) await kv.hdel(`push:${auth.uid}`, endpoint);
   return NextResponse.json({ ok: true });
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAuth, saveAuth, peekToken, maskEmail } from "@/lib/auth";
+import { maskEmail, peekToken } from "@/lib/auth";
+import { claimEmail, getUser, releaseEmail, saveUser } from "@/lib/users";
 import { readJson } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
@@ -15,13 +16,17 @@ export async function POST(request) {
   if (!data) {
     return NextResponse.json({ error: "El enlace venció. Pide uno nuevo desde la pestaña Cuenta." }, { status: 400 });
   }
-  const ok = NextResponse.json({ ok: true, person: data.person, email: maskEmail(data.email) });
-  const record = await getAuth(data.person);
-  if (record?.email === data.email) return ok;
-  if (!record || record.pendingEmail !== data.email) {
+  const user = await getUser(data.uid);
+  const ok = NextResponse.json({ ok: true, name: user?.name, email: maskEmail(data.email) });
+  if (user?.email === data.email) return ok;
+  if (!user || user.pendingEmail !== data.email) {
     return NextResponse.json({ error: "Este enlace ya no sirve: después se vinculó otro correo." }, { status: 400 });
   }
-  const { pendingEmail, ...rest } = record;
-  await saveAuth(data.person, { ...rest, email: data.email });
+  if (!(await claimEmail(data.email, user.id))) {
+    return NextResponse.json({ error: "Ese correo ya lo usa otra cuenta." }, { status: 409 });
+  }
+  const { pendingEmail, ...rest } = user;
+  if (user.email && user.email !== data.email) await releaseEmail(user.email, user.id);
+  await saveUser({ ...rest, email: data.email });
   return ok;
 }

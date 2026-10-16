@@ -1,59 +1,57 @@
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
-import { PEOPLE } from "@/config";
-import { getSettings } from "@/lib/settings";
-import { requireSession } from "@/lib/session";
+import { gk, groupSettings } from "@/lib/groups";
+import { isAdmin, requireMember } from "@/lib/session";
 import { readJson } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
 
-async function loadPoints() {
-  const values = await Promise.all(PEOPLE.flatMap((p) => [kv.get(`points:${p}`), kv.get(`desserts:${p}`)]));
+async function loadPoints(gid, members) {
+  const values = await Promise.all(members.flatMap((uid) => [kv.get(gk(gid, "points", uid)), kv.get(gk(gid, "desserts", uid))]));
   return {
-    points: Object.fromEntries(PEOPLE.map((p, i) => [p, Number(values[i * 2] || 0)])),
-    desserts: Object.fromEntries(PEOPLE.map((p, i) => [p, Number(values[i * 2 + 1] || 0)])),
+    points: Object.fromEntries(members.map((uid, i) => [uid, Number(values[i * 2] || 0)])),
+    desserts: Object.fromEntries(members.map((uid, i) => [uid, Number(values[i * 2 + 1] || 0)])),
   };
 }
 
+// GET -> puntos y premios ganados de cada miembro de la sala.
 export async function GET(request) {
-  const auth = await requireSession(request);
+  const auth = await requireMember(request);
   if (auth.error) return auth.error;
-  const [{ dessertThreshold }, data] = await Promise.all([getSettings(), loadPoints()]);
-  return NextResponse.json({ ...data, threshold: dessertThreshold });
+  const { dessertThreshold, reward } = groupSettings(auth.group);
+  return NextResponse.json({ ...(await loadPoints(auth.gid, auth.members)), threshold: dessertThreshold, reward });
 }
 
-// Reclamar el postre de { person }: resta el umbral de sus puntos y suma 1 a
-// sus postres ganados. Lo puede marcar cualquiera de los dos.
+// POST { uid } -> marcar como cobrado el premio de esa persona: resta la meta
+// de sus puntos y suma 1 a sus premios ganados.
 export async function POST(request) {
-  const auth = await requireSession(request);
+  const auth = await requireMember(request);
   if (auth.error) return auth.error;
-  const { person } = await readJson(request);
-  if (!PEOPLE.includes(person)) {
-    return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
-  }
-
-  const { dessertThreshold } = await getSettings();
-  const current = Number((await kv.get(`points:${person}`)) || 0);
+  const { uid } = await readJson(request);
+  if (!auth.members.includes(uid)) return NextResponse.json({ error: "Esa persona no está en la sala" }, { status: 400 });
+  const { dessertThreshold } = groupSettings(auth.group);
+  const current = Number((await kv.get(gk(auth.gid, "points", uid))) || 0);
   if (current < dessertThreshold) {
-    return NextResponse.json({ error: "Todavía no llega al puntaje del postre" }, { status: 400 });
+    return NextResponse.json({ error: "Todavía no llega a la meta" }, { status: 400 });
   }
   // decrby es atomico: dos toques seguidos no restan de mas.
   const [points, desserts] = await Promise.all([
-    kv.decrby(`points:${person}`, dessertThreshold),
-    kv.incrby(`desserts:${person}`, 1),
+    kv.decrby(gk(auth.gid, "points", uid), dessertThreshold),
+    kv.incrby(gk(auth.gid, "desserts", uid), 1),
   ]);
   return NextResponse.json({ points, desserts });
 }
 
-// Reiniciar puntos: { person } reinicia solo a esa persona; sin person, a los
-// dos. No toca los postres ya ganados (eso es historico).
+// DELETE { uid? } (solo admins) -> reinicia los puntos de esa persona o de
+// toda la sala. No toca los premios ya ganados (eso es historico).
 export async function DELETE(request) {
-  const auth = await requireSession(request);
+  const auth = await requireMember(request);
   if (auth.error) return auth.error;
-  const { person } = await readJson(request);
-  if (person && !PEOPLE.includes(person)) {
-    return NextResponse.json({ error: "Persona inválida" }, { status: 400 });
+  if (!isAdmin(auth.group, auth.uid)) {
+    return NextResponse.json({ error: "Solo quien administra la sala puede reiniciar puntos" }, { status: 403 });
   }
-  await Promise.all((person ? [person] : PEOPLE).map((p) => kv.set(`points:${p}`, 0)));
-  return NextResponse.json({ points: (await loadPoints()).points });
+  const { uid } = await readJson(request);
+  if (uid && !auth.members.includes(uid)) return NextResponse.json({ error: "Esa persona no está en la sala" }, { status: 400 });
+  await Promise.all((uid ? [uid] : auth.members).map((m) => kv.set(gk(auth.gid, "points", m), 0)));
+  return NextResponse.json({ points: (await loadPoints(auth.gid, auth.members)).points });
 }

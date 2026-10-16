@@ -1,28 +1,21 @@
 import { NextResponse } from "next/server";
-import { kv } from "@/lib/kv";
-import { DEFAULT_GROUP_NAME, THEMES, defaultThemeFor } from "@/config";
-import { getAuth, publicStatus } from "@/lib/auth";
-import { clearSessionCookie, destroySession, sessionPerson } from "@/lib/session";
+import { userGroups } from "@/lib/groups";
+import { getUser, selfUser } from "@/lib/users";
+import { ensureMigrated } from "@/lib/migrate";
+import { clearSessionCookie, destroySession, sessionUserId } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-// GET -> quien tiene la sesion en este navegador y lo que la app necesita
-// para arrancar (tema, nombre del grupo, estado del correo) en una sola
-// llamada. Sin sesion: { person: null }.
+// GET -> quien tiene la sesion, sus salas y en cual estaba. Sin sesion:
+// { user: null }.
 export async function GET(request) {
-  const person = await sessionPerson(request);
-  if (!person) return NextResponse.json({ person: null });
-  const [theme, groupName, record] = await Promise.all([
-    kv.get(`theme:${person}`),
-    kv.get("settings:group_name"),
-    getAuth(person),
-  ]);
-  return NextResponse.json({
-    person,
-    theme: THEMES.some((t) => t.id === theme) ? theme : defaultThemeFor(person),
-    groupName: typeof groupName === "string" && groupName.trim() ? groupName : DEFAULT_GROUP_NAME,
-    account: publicStatus(record),
-  });
+  await ensureMigrated();
+  const uid = await sessionUserId(request);
+  const user = uid && (await getUser(uid));
+  if (!user) return NextResponse.json({ user: null });
+  const groups = await userGroups(user);
+  const current = groups.find((g) => g.id === user.lastGroup) || groups[0] || null;
+  return NextResponse.json({ user: selfUser(user), groups, currentGroup: current?.id || null });
 }
 
 // DELETE -> cerrar sesion en este navegador.
