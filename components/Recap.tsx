@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
-import { PEOPLE, categoryInfo } from "@/config";
+import { PEOPLE } from "@/config";
 import type { Photo, RecapEntry, RecapList } from "./types";
 import { api } from "./api";
 import { Avatar, Button, Icon } from "./ui";
 import { PhotoViewer } from "./Photos";
-import { memoryTitle, optionEmoji, parseDate, rootSteps, stepResult, terminalStep, weekdayUpper } from "./planUtils";
+import { memoryTitle, optionEmoji, stepEmoji, parseDate, rootSteps, stepResult, terminalStep, weekdayUpper } from "./planUtils";
 
 const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const SLIDE_MS = 6500;
@@ -33,7 +33,7 @@ function buildRecap(entries: RecapEntry[]) {
         continue;
       }
       decided++;
-      let emoji = categoryInfo(s.category).emoji;
+      let emoji = stepEmoji(s);
       if (s.kind === "comida-tipo") {
         const type = stepResult(s, votes[s.id]);
         if (type.winners.length === 1) emoji = optionEmoji(s, type.winners[0]) || emoji;

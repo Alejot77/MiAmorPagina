@@ -1,4 +1,4 @@
-import { PEOPLE, FOOD_TYPES, categoryInfo, placeGroupInfo, foodTypeInfo } from "@/config";
+import { PEOPLE, FOOD_TYPES, categoryInfo, mealInfo, placeGroupInfo, foodTypeInfo } from "@/config";
 import type { Option, Place, Plan, PlanVotes, Step, StepVotes } from "./types";
 
 export const OTHER_PERSON = (person: string) => PEOPLE.find((p) => p !== person) || "";
@@ -59,7 +59,13 @@ export function optionEmoji(step: Step, option?: Option) {
   return "";
 }
 
+// Emoji de una categoria (en comida, el de desayuno/almuerzo/cena si lo eligieron).
+export function stepEmoji(step: Step) {
+  return (step.category === "comida" && mealInfo(step.meal)?.emoji) || categoryInfo(step.category).emoji;
+}
+
 export function categoryTitle(step: Step) {
+  if (step.category === "comida" && mealInfo(step.meal)) return mealInfo(step.meal).label;
   return step.category === "otro" ? step.question : categoryInfo(step.category).label;
 }
 

@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { PEOPLE, categoryInfo } from "@/config";
+import { PEOPLE } from "@/config";
 import type { Option, Place, Plan, PlanVotes, Step, StepVotes, VotesByPlan } from "./types";
 import { Avatar, Button, Icon, Pill } from "./ui";
 import {
-  categoryTitle, dayMonthUpper, generatedStep, isPlanComplete, optionEmoji, rangeLabel,
+  categoryTitle, stepEmoji, dayMonthUpper, generatedStep, isPlanComplete, optionEmoji, rangeLabel,
   rootSteps, stepResult, terminalStep, todayStr, upcomingSaturday, weekdayUpper, addDays,
 } from "./planUtils";
 
@@ -189,7 +189,7 @@ function DayPlan({ plan, votes, person, places, actions }: { plan: Plan; votes: 
             <div className="day-summary">
               {steps.map((s) => (
                 <div key={s.id}>
-                  <span>{categoryInfo(s.category).emoji}</span>
+                  <span>{stepEmoji(s)}</span>
                   <p><strong>{categoryTitle(s)}</strong><small>{summaryText(plan, s, votes)}</small></p>
                 </div>
               ))}
@@ -197,7 +197,7 @@ function DayPlan({ plan, votes, person, places, actions }: { plan: Plan; votes: 
           ) : (
             <>
               {steps.map((s, i) => (
-                <PlanCategory key={s.id} emoji={categoryInfo(s.category).emoji} title={categoryTitle(s)} last={i === steps.length - 1}>
+                <PlanCategory key={s.id} emoji={stepEmoji(s)} title={categoryTitle(s)} last={i === steps.length - 1}>
                   {s.kind === "comida-tipo" ? (
                     <FoodBody plan={plan} step={s} votes={votes} person={person} places={places} actions={actions} />
                   ) : (

@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { PEOPLE, categoryInfo, foodTypeInfo } from "@/config";
+import { PEOPLE, foodTypeInfo } from "@/config";
 import type { Place, Plan, Step, StepVotes } from "./types";
 import { Avatar, Button, Icon, Modal, SheetHeader } from "./ui";
-import { OTHER_PERSON, categoryTitle, dayMonthUpper, optionEmoji, placeEmoji, stepResult, weekdayUpper } from "./planUtils";
+import { OTHER_PERSON, categoryTitle, dayMonthUpper, optionEmoji, placeEmoji, stepResult, weekdayUpper, stepEmoji } from "./planUtils";
 
 function eyebrowFor(plan: Plan, step: Step) {
-  const label = step.kind === "comida-lugar" ? "COMIDA · RESTAURANTE" : categoryTitle(step).toUpperCase();
+  const label = step.kind === "comida-lugar" ? `${categoryTitle(step).toUpperCase()} · RESTAURANTE` : categoryTitle(step).toUpperCase();
   return `${label} · ${weekdayUpper(plan.weekend)} ${dayMonthUpper(plan.weekend).split(" ")[0]}`;
 }
 
@@ -83,7 +83,7 @@ export function ResultSheet({ plan, step, votes, places, close, chooseRestaurant
 }) {
   const r = stepResult(step, votes);
   const isFoodType = step.kind === "comida-tipo";
-  const label = step.kind === "comida-lugar" ? "COMIDA" : categoryTitle(step).toUpperCase();
+  const label = categoryTitle(step).toUpperCase();
 
   if (r.tie) {
     return (
@@ -118,7 +118,7 @@ export function ResultSheet({ plan, step, votes, places, close, chooseRestaurant
   const typeKey = winner?.id;
   const savedForType = isFoodType ? places.filter((p) => p.group === "comida" && p.category === typeKey).length : 0;
   const place = winner?.placeId ? places.find((p) => p.id === winner.placeId) : undefined;
-  const emoji = place ? placeEmoji(place) : optionEmoji(step, winner) || categoryInfo(step.category).emoji;
+  const emoji = place ? placeEmoji(place) : optionEmoji(step, winner) || stepEmoji(step);
 
   return (
     <Modal close={close}>

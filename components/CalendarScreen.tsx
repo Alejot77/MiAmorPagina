@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { categoryInfo } from "@/config";
 import type { Plan, PlanVotes } from "./types";
 import { Button, Icon } from "./ui";
-import { categoryTitle, longDate, parseDate, rootSteps, shortDayUpper, stepResult, terminalStep, toDateStr, todayStr } from "./planUtils";
+import { categoryTitle, stepEmoji, longDate, parseDate, rootSteps, shortDayUpper, stepResult, terminalStep, toDateStr, todayStr } from "./planUtils";
 
 type Entry = { plan: Plan; votes: PlanVotes; active: boolean };
 
@@ -83,7 +82,7 @@ export default function CalendarScreen({ entries, onCreateForDate, onOpenActive,
               {dayEntries.flatMap((e) =>
                 rootSteps(e.plan).map((s) => (
                   <div key={s.id}>
-                    <span>{categoryInfo(s.category).emoji}</span>
+                    <span>{stepEmoji(s)}</span>
                     <p><strong>{categoryTitle(s)}</strong>{statusText(e.plan, e.votes, s.id)}</p>
                   </div>
                 ))

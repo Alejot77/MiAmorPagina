@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { DEFAULT_GROUP_NAME, PEOPLE, categoryInfo, defaultThemeFor } from "@/config";
+import { DEFAULT_GROUP_NAME, PEOPLE, defaultThemeFor } from "@/config";
 import { usePushNotifications } from "@/lib/usePushNotifications";
 import { applyTheme, rememberTheme } from "@/lib/useThemePerson";
 import type { Account, HistoryEntry, Place, Plan, PointsData, RecapList, VotesByPlan } from "./types";
@@ -36,7 +36,7 @@ type Overlay =
   | { type: "photos"; planId: string }
   | { type: "recap"; month: string };
 type Flow = { mode: "create" | "edit" | "add"; planId?: string; repeatFrom?: Plan; presetDate?: string };
-type Toast = { categories: string[]; earned: number; reachedGoal: boolean };
+type Toast = { labels: string[]; earned: number; reachedGoal: boolean };
 
 const FLOWER_PERSON = "Stefanny";
 const FLOWER_SEEN_KEY = "miamor_flowers_seen";
@@ -187,7 +187,7 @@ export default function AppShell({ person, boot, onLogout }: { person: string; b
     loadPlaces();
   }
 
-  async function saveFlow({ targetPlan, weekend, steps, categories }: { targetPlan?: Plan; weekend: string; steps: any[]; categories: string[] }) {
+  async function saveFlow({ targetPlan, weekend, steps, labels }: { targetPlan?: Plan; weekend: string; steps: any[]; labels: string[] }) {
     const before = points?.points[person] || 0;
     const j = targetPlan
       ? await api("/api/plan", "PATCH", { planId: targetPlan.id, weekend, person, steps })
@@ -201,7 +201,7 @@ export default function AppShell({ person, boot, onLogout }: { person: string; b
       const p = await api<PointsData>("/api/points");
       setPoints(p);
       const now = p.points[person] || 0;
-      setToast({ categories, earned: j.pointsEarned, reachedGoal: before < p.threshold && now >= p.threshold });
+      setToast({ labels, earned: j.pointsEarned, reachedGoal: before < p.threshold && now >= p.threshold });
     }
   }
 
@@ -524,7 +524,7 @@ export default function AppShell({ person, boot, onLogout }: { person: string; b
             <button onClick={() => setToast(null)} aria-label="Cerrar"><Icon name="close" size={16} /></button>
             <div>
               <span>{toast.reachedGoal ? `¡Llegaste a ${points?.threshold}! 🍰` : "Plan guardado 💜"}</span>
-              <strong>{toast.categories.map((c) => `${categoryInfo(c).emoji} ${categoryInfo(c).label}`).join(" · ")}</strong>
+              <strong>{toast.labels.join(" · ")}</strong>
               <small>+{toast.earned} pts para {person} 🏆{toast.reachedGoal ? ` · ${other} te debe un postre.` : ""}</small>
             </div>
           </div>

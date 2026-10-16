@@ -952,3 +952,8 @@ a.text-link { text-decoration: none; }
   .roulette-fab { bottom: calc(76px + 24px + 16px); }
 }
 .account-links > :last-child { border-bottom: 0; }
+
+/* Desayuno / almuerzo / cena al crear la encuesta de comida */
+.meal-picker { text-align: left; margin: 16px 0 4px; }
+.meal-picker > span { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--ink); }
+.meal-picker small { color: var(--muted); font-weight: 500; }

@@ -37,6 +37,19 @@ export const FOOD_TYPES = [
   { key: "otro", label: "Otro", emoji: "🍽️" },
 ];
 
+// Para que comida es la encuesta de "Comida" (opcional: sin elegir queda
+// como "Comida"). "what" es la pregunta del tipo de comida y "where" la del
+// restaurante.
+export const MEALS = [
+  { key: "desayuno", label: "Desayuno", emoji: "🥐", what: "¿Qué desayunamos?", where: "¿Dónde desayunamos?" },
+  { key: "almuerzo", label: "Almuerzo", emoji: "🍛", what: "¿Qué almorzamos?", where: "¿Dónde almorzamos?" },
+  { key: "cena", label: "Cena", emoji: "🌙", what: "¿Qué cenamos?", where: "¿Dónde cenamos?" },
+];
+
+export function mealInfo(key) {
+  return MEALS.find((m) => m.key === key) || null;
+}
+
 export function foodTypeInfo(key) {
   return FOOD_TYPES.find((f) => f.key === key) || FOOD_TYPES[FOOD_TYPES.length - 1];
 }

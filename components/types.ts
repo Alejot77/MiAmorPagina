@@ -9,6 +9,7 @@ export type Step = {
   twoPhase?: boolean;
   generatedStepId?: string;
   generatedFrom?: string;
+  meal?: string; // "desayuno" | "almuerzo" | "cena" (solo comida)
 };
 
 export type Plan = {

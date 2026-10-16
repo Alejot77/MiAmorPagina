@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CATEGORIES, FOOD_TYPES, PEOPLE, categoryInfo, foodTypeInfo } from "@/config";
+import { CATEGORIES, FOOD_TYPES, MEALS, PEOPLE, categoryInfo, foodTypeInfo, mealInfo } from "@/config";
 import type { Place, Plan, Step } from "./types";
 import { api } from "./api";
 import { Avatar, Button, Icon, Pill } from "./ui";
@@ -22,6 +22,7 @@ function draftFromPlan(plan: Plan) {
   let foodSelections: string[] = [];
   let restaurants: Restaurant[] = [];
   let otherName = "";
+  let meal = "";
   const extraSteps: Step[] = []; // categorias repetidas que el asistente no sabe mostrar
 
   for (const step of rootSteps(plan)) {
@@ -32,6 +33,7 @@ function draftFromPlan(plan: Plan) {
     categories.push(step.category);
     stepIdByKey[step.category] = step.id;
     if (step.category === "comida") {
+      meal = step.meal || "";
       foodSeparate = step.kind === "comida-tipo";
       if (foodSeparate) foodSelections = step.options.map((o) => (o.id.startsWith("custom:") ? o.name : o.id));
       else restaurants = step.options.map((o) => ({ name: o.name, link: o.link, placeId: o.placeId }));
@@ -40,7 +42,7 @@ function draftFromPlan(plan: Plan) {
       if (step.category === "otro") otherName = step.question;
     }
   }
-  return { categories, stepIdByKey, options, foodSeparate, foodSelections, restaurants, otherName, extraSteps };
+  return { categories, stepIdByKey, options, foodSeparate, foodSelections, restaurants, otherName, meal, extraSteps };
 }
 
 // Un paso existente tal cual, en el formato que espera /api/plan.
@@ -51,6 +53,7 @@ function stepToPayload(step: Step) {
       category: step.category,
       question: step.question,
       twoPhase: true,
+      ...(step.meal ? { meal: step.meal } : {}),
       ...(step.generatedStepId ? { generatedStepId: step.generatedStepId } : {}),
       selectedTypes: step.options.map((o) => (o.id.startsWith("custom:") ? o.name : o.id)),
     };
@@ -61,6 +64,7 @@ function stepToPayload(step: Step) {
     question: step.question,
     ...(step.kind ? { kind: step.kind } : {}),
     ...(step.generatedFrom ? { generatedFrom: step.generatedFrom } : {}),
+    ...(step.meal ? { meal: step.meal } : {}),
     options: step.options.map((o) => ({ name: o.name, link: o.link, placeId: o.placeId })),
   };
 }
@@ -76,7 +80,7 @@ export default function CreateFlow({ mode, person, plan, repeatFrom, presetDate,
   activePlans: Plan[];
   places: Place[];
   close: () => void;
-  save: (args: { targetPlan?: Plan; weekend: string; steps: any[]; categories: string[] }) => Promise<void>;
+  save: (args: { targetPlan?: Plan; weekend: string; steps: any[]; labels: string[] }) => Promise<void>; // labels: "🌙 Cena", "🎯 Actividad"...
 }) {
   const base = useMemo(() => {
     if (mode === "edit" && plan) return draftFromPlan(plan);
@@ -108,6 +112,7 @@ export default function CreateFlow({ mode, person, plan, repeatFrom, presetDate,
   const [options, setOptions] = useState<Record<string, GenericOption[]>>(base?.options || {});
   const [openLinks, setOpenLinks] = useState<string[]>([]);
   const [otherName, setOtherName] = useState(base?.otherName || "");
+  const [meal, setMeal] = useState(base?.meal || "");
   const [sitePicker, setSitePicker] = useState(false);
   const [pickedSites, setPickedSites] = useState<string[]>([]);
   const [showManual, setShowManual] = useState(false);
@@ -161,7 +166,11 @@ export default function CreateFlow({ mode, person, plan, repeatFrom, presetDate,
   const isQuick = quickDays.some((d) => d.date === date);
 
   function questionFor(key: string) {
-    if (key === "comida") return foodSeparate ? "¿Qué comemos?" : "¿Dónde comemos?";
+    if (key === "comida") {
+      const m = mealInfo(meal);
+      if (m) return foodSeparate ? m.what : m.where;
+      return foodSeparate ? "¿Qué comemos?" : "¿Dónde comemos?";
+    }
     if (key === "otro") return otherName.trim() || "¿Qué más?";
     return categoryInfo(key).question;
   }
@@ -210,13 +219,14 @@ export default function CreateFlow({ mode, person, plan, repeatFrom, presetDate,
             ...idPart,
             category: "comida",
             question: questionFor("comida"),
+            ...(meal ? { meal } : {}),
             twoPhase: true,
             ...(sameFoodMode && originalFood?.generatedStepId ? { generatedStepId: originalFood.generatedStepId } : {}),
             selectedTypes: foodSelections,
           };
         }
         if (key === "comida") {
-          return { ...idPart, category: "comida", question: questionFor("comida"), options: finalRestaurants.map((r) => ({ name: r.name, link: r.link, placeId: r.placeId })) };
+          return { ...idPart, category: "comida", question: questionFor("comida"), ...(meal ? { meal } : {}), options: finalRestaurants.map((r) => ({ name: r.name, link: r.link, placeId: r.placeId })) };
         }
         return { ...idPart, category: key, question: questionFor(key), options: optionsFor(key).filter((o) => o.name.trim()) };
       });
@@ -230,13 +240,20 @@ export default function CreateFlow({ mode, person, plan, repeatFrom, presetDate,
         const keptGen = sameFoodMode && originalFood?.generatedStepId && categories.includes("comida") && foodSeparate
           ? plan.steps.filter((s) => s.id === originalFood.generatedStepId)
           : [];
-        steps = [...newSteps, ...keptGen.map(stepToPayload), ...(base?.extraSteps || []).map(stepToPayload)];
+        const genPayload = keptGen.map((s) => {
+          const { meal: _old, ...rest } = stepToPayload(s) as any;
+          return { ...rest, ...(meal ? { meal } : {}), question: mealInfo(meal)?.where || "¿Dónde comemos?" };
+        });
+        steps = [...newSteps, ...genPayload, ...(base?.extraSteps || []).map(stepToPayload)];
       } else {
         targetPlan = mode === "add" ? plan : planForDate;
         steps = [...(targetPlan ? targetPlan.steps.map(stepToPayload) : []), ...newSteps];
       }
 
-      await save({ targetPlan, weekend: date, steps, categories });
+      const labels = categories.map((c) =>
+        c === "comida" && mealInfo(meal) ? `${mealInfo(meal).emoji} ${mealInfo(meal).label}` : `${categoryInfo(c).emoji} ${c === "otro" ? questionFor("otro") : categoryInfo(c).label}`
+      );
+      await save({ targetPlan, weekend: date, steps, labels });
     } catch (err: any) {
       setError(err.message);
       setBusy(false);
@@ -327,6 +344,18 @@ export default function CreateFlow({ mode, person, plan, repeatFrom, presetDate,
                 </button>
               ))}
             </div>
+            {categories.includes("comida") && (
+              <div className="meal-picker">
+                <span>¿Para qué comida? <small>(opcional)</small></span>
+                <div className="food-chips">
+                  {MEALS.map((m) => (
+                    <button key={m.key} type="button" className={meal === m.key ? "food-chip selected" : "food-chip"} onClick={() => setMeal(meal === m.key ? "" : m.key)} aria-pressed={meal === m.key}>
+                      {m.emoji} {m.label}{meal === m.key && <Icon name="check" size={13} />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {categories.includes("comida") && (
               <label className={`switch-row category-setting ${foodSeparate ? "on" : "off"}`}>
                 <span><strong>Elegir restaurante después</strong><small>Primero decidimos qué comer y después dónde.</small></span>
@@ -499,7 +528,7 @@ export default function CreateFlow({ mode, person, plan, repeatFrom, presetDate,
                 <span className="eyebrow">NUESTRO PLAN</span>
                 <h2>{longDate(date)}</h2>
                 <div className="review-categories">
-                  {categories.map((c) => <span key={c}>{categoryInfo(c).emoji} {c === "otro" ? questionFor("otro") : categoryInfo(c).label}</span>)}
+                  {categories.map((c) => <span key={c}>{c === "comida" && mealInfo(meal) ? `${mealInfo(meal).emoji} ${mealInfo(meal).label}` : `${categoryInfo(c).emoji} ${c === "otro" ? questionFor("otro") : categoryInfo(c).label}`}</span>)}
                 </div>
               </div>
             </div>
@@ -511,7 +540,7 @@ export default function CreateFlow({ mode, person, plan, repeatFrom, presetDate,
                     : optionsFor(c).filter((o) => o.name.trim()).map((o) => o.name);
                 return (
                   <div className="preview-poll" key={c}>
-                    <div><span>{categoryInfo(c).emoji}</span><strong>{questionFor(c)}</strong><Pill tone="amber">{names.length} opciones</Pill></div>
+                    <div><span>{c === "comida" && mealInfo(meal) ? mealInfo(meal).emoji : categoryInfo(c).emoji}</span><strong>{questionFor(c)}</strong><Pill tone="amber">{names.length} opciones</Pill></div>
                     {names.slice(0, 4).map((n) => <span key={n}>{n}</span>)}
                     {c === "comida" && foodSeparate && <small>Después decidirán el restaurante</small>}
                   </div>

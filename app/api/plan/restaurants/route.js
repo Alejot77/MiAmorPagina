@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
-import { PEOPLE, FOOD_TYPES } from "@/config";
+import { PEOPLE, FOOD_TYPES, mealInfo } from "@/config";
 import { sendPushToPerson, otherPerson } from "@/lib/push";
 import { isPlanActive, loadActivePlans } from "@/lib/planWindow";
 import { requireSession } from "@/lib/session";
@@ -99,17 +99,20 @@ export async function POST(request) {
     ...(r.placeId ? { placeId: r.placeId } : {}),
   }));
 
+  // El paso de restaurante hereda desayuno/almuerzo/cena del tipo de comida.
+  const meal = mealInfo(typeStep.meal) ? { meal: typeStep.meal } : {};
   let steps;
   if (existingGen) {
-    steps = plan.steps.map((s) => (s.id === existingGen.id ? { ...s, options } : s));
+    steps = plan.steps.map((s) => (s.id === existingGen.id ? { ...s, options, ...meal } : s));
   } else {
     const newStep = {
       id: `step${Date.now()}lugar`,
       category: "comida",
       kind: "comida-lugar",
       generatedFrom: typeStep.id,
-      question: "¿Dónde comemos?",
+      question: mealInfo(typeStep.meal)?.where || "¿Dónde comemos?",
       options,
+      ...meal,
     };
     steps = plan.steps
       .map((s) => (s.id === typeStep.id ? { ...s, generatedStepId: newStep.id } : s))

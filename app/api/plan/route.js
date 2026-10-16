@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { kv } from "@/lib/kv";
-import { CATEGORIES, PEOPLE, categoryInfo, FOOD_TYPES } from "@/config";
+import { CATEGORIES, PEOPLE, categoryInfo, mealInfo, FOOD_TYPES } from "@/config";
 import { getSettings } from "@/lib/settings";
 import { sendPushToPerson, otherPerson } from "@/lib/push";
 import { deletePlanPhotos } from "@/lib/photos";
@@ -73,6 +73,7 @@ function normalizeSteps(rawSteps) {
     const step = { id, category, question, options };
     if (kind) step.kind = kind;
     if (twoPhase) step.twoPhase = true;
+    if (category === "comida" && mealInfo(s.meal)) step.meal = s.meal;
     if (isId(s.generatedStepId)) step.generatedStepId = s.generatedStepId;
     if (isId(s.generatedFrom)) step.generatedFrom = s.generatedFrom;
     steps.push(step);

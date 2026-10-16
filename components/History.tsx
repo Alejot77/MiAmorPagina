@@ -1,20 +1,19 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { categoryInfo } from "@/config";
 import type { HistoryEntry, Plan, PlanVotes, RecapList } from "./types";
 import { PhotosSection } from "./Photos";
 import { RecapCards } from "./Recap";
 import { api } from "./api";
 import { Button, ConfirmDialog, Icon, Modal, Pill } from "./ui";
-import { categoryTitle, dayMonthUpper, memoryTitle, monthUpper, parseDate, rootSteps, stepResult, terminalStep, weekdayUpper } from "./planUtils";
+import { categoryTitle, stepEmoji, dayMonthUpper, memoryTitle, monthUpper, parseDate, rootSteps, stepResult, terminalStep, weekdayUpper } from "./planUtils";
 
 function decisions(plan: Plan, votes: PlanVotes) {
   return rootSteps(plan).map((s) => {
     const final = terminalStep(plan, s);
     const r = stepResult(final, votes[final.id]);
     const text = !r.allVoted ? "Sin decidir" : r.tie ? `Empate: ${r.winners.map((o) => o.name).join(" o ")}` : r.winners[0].name;
-    return { id: s.id, emoji: categoryInfo(s.category).emoji, label: categoryTitle(s), text, decided: r.allVoted && !r.tie };
+    return { id: s.id, emoji: stepEmoji(s), label: categoryTitle(s), text, decided: r.allVoted && !r.tie };
   });
 }
 
@@ -76,7 +75,7 @@ export function History({ entries, onOpen, recap, onOpenRecap, calendar }: {
                 <div className="date-tile"><strong>{parseDate(plan.weekend).getDate()}</strong><span>{dayMonthUpper(plan.weekend).split(" ")[1]}</span></div>
                 <div>
                   <strong>{memoryTitle(plan, votes)}</strong>
-                  <p>{rootSteps(plan).map((s) => categoryInfo(s.category).emoji).join(" ")} · {rootSteps(plan).length} {rootSteps(plan).length === 1 ? "decisión" : "decisiones"}</p>
+                  <p>{rootSteps(plan).map((s) => stepEmoji(s)).join(" ")} · {rootSteps(plan).length} {rootSteps(plan).length === 1 ? "decisión" : "decisiones"}</p>
                 </div>
                 <Icon name="chevron" />
               </button>
