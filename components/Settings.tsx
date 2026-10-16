@@ -5,7 +5,7 @@ import Link from "next/link";
 import { THEMES, themeInfo } from "@/config";
 import type { Account, GroupDetail, GroupSummary, Me, PointsData } from "./types";
 import { api } from "./api";
-import { Avatar, Button, ConfirmDialog, Icon, PointsProgress } from "./ui";
+import { Avatar, Button, ConfirmDialog, Icon, Modal, PointsProgress, SheetHeader } from "./ui";
 import { InvitePanel, MembersPanel } from "./Groups";
 import { PushPanel, pushSummary, type Push } from "./PushPrompt";
 
@@ -240,6 +240,45 @@ function RulesForm({ group, onChanged }: { group: GroupDetail; onChanged: (g: Gr
   );
 }
 
+// Si eres el unico admin, antes de salir eliges quien te reemplaza.
+function LeaveAsAdmin({ group, me, close, onLeave }: { group: GroupDetail; me: Me; close: () => void; onLeave: (newAdmin: string) => Promise<void> }) {
+  const [pick, setPick] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const others = group.members.filter((m) => m.id !== me.id);
+
+  async function leave() {
+    setBusy(true);
+    setError("");
+    try {
+      await onLeave(pick);
+    } catch (err: any) {
+      setError(err.message);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal close={close}>
+      <SheetHeader eyebrow="ANTES DE SALIR" title="Elige al nuevo admin" subtitle={`Eres quien administra «${group.name}». Alguien tiene que quedar a cargo.`} close={close} />
+      <div className="admin-pick">
+        {others.map((m) => (
+          <button key={m.id} className={pick === m.id ? "selected" : ""} onClick={() => setPick(m.id)} aria-pressed={pick === m.id}>
+            <Avatar name={m.name} color={m.color} />
+            <strong>{m.name}</strong>
+            <i>{pick === m.id && <Icon name="check" size={14} />}</i>
+          </button>
+        ))}
+      </div>
+      {error && <p className="form-error">{error}</p>}
+      <button className="confirm-destructive leave-confirm" onClick={leave} disabled={!pick || busy}>
+        {busy ? "Saliendo..." : pick ? `Nombrar a ${others.find((m) => m.id === pick)?.name} y salir` : "Elige a alguien"}
+      </button>
+      <Button variant="ghost" className="full" onClick={close}>Mejor me quedo</Button>
+    </Modal>
+  );
+}
+
 const sinceLabel = (iso: string) => new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(new Date(iso));
 
 // Pestaña "Cuenta": la sala abierta (puntos, invitar, miembros, reglas),
@@ -254,7 +293,7 @@ export function AccountPage({ me, group, groups, points, push, focus, onPointsCh
   onPointsChanged: () => void;
   onMeChanged: (me: Me) => void;
   onGroupChanged: (g: GroupDetail) => void;
-  onLeave: () => Promise<void>;
+  onLeave: (newAdmin?: string) => Promise<void>;
   onSwitch: (id: string) => void;
   onPin: (id: string, pinned: boolean) => void;
   onCreate: () => void;
@@ -304,6 +343,9 @@ export function AccountPage({ me, group, groups, points, push, focus, onPointsCh
       setBusy(false);
     }
   }
+
+  // Unico admin con mas gente en la sala: tiene que nombrar a alguien.
+  const soleAdmin = group.admin && group.members.length > 1 && group.members.filter((m) => m.admin).length === 1;
 
   async function leave() {
     setBusy(true);
@@ -388,6 +430,7 @@ export function AccountPage({ me, group, groups, points, push, focus, onPointsCh
       )}
 
       <button className="leave-group" onClick={() => setConfirmLeave(true)}>Salir de «{group.name}»</button>
+      {soleAdmin && <p className="leave-note">Eres el único admin: al salir eliges quién te reemplaza. También puedes dar admin a alguien desde «Miembros».</p>}
 
       {/* ---------- Mis salas ---------- */}
       <span className="settings-label">MIS SALAS</span>
@@ -470,7 +513,10 @@ export function AccountPage({ me, group, groups, points, push, focus, onPointsCh
           onCancel={() => setConfirmReset(null)}
         />
       )}
-      {confirmLeave && (
+      {confirmLeave && soleAdmin && (
+        <LeaveAsAdmin group={group} me={me} close={() => setConfirmLeave(false)} onLeave={(id) => onLeave(id)} />
+      )}
+      {confirmLeave && !soleAdmin && (
         <ConfirmDialog
           title={`¿Salir de «${group.name}»?`}
           message={group.members.length === 1 ? "Eres la última persona: la sala y todo lo suyo se borran." : "Dejas de ver sus planes. Puedes volver con el código de invitación."}

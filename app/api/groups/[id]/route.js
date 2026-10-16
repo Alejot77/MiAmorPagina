@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { GROUP_LIMITS, groupMembers, groupSettings, regenerateCode, removeMember, saveGroup } from "@/lib/groups";
 import { getUser, saveUser } from "@/lib/users";
-import { notifyGroup } from "@/lib/push";
+import { notifyGroup, sendPushToUser } from "@/lib/push";
 import { isAdmin, requireMemberOf } from "@/lib/session";
 import { cleanText, readJson } from "@/lib/validate";
 
@@ -69,20 +69,46 @@ export async function PATCH(request, { params }) {
   return NextResponse.json({ group: await detail(group, auth.uid) });
 }
 
-// DELETE -> salir de la sala. Si era la ultima persona, la sala se borra.
+// DELETE { newAdmin? } -> salir de la sala. Si eres el unico admin y quedan
+// otras personas, primero tienes que nombrar a quien te reemplaza. Si eras
+// la ultima persona, la sala se borra.
 export async function DELETE(request, { params }) {
   const { id } = await params;
   const auth = await requireMemberOf(request, id);
   if (auth.error) return auth.error;
+  const { newAdmin } = await readJson(request);
   const user = await getUser(auth.uid);
-  const remaining = await removeMember(auth.group, auth.uid);
+  const others = auth.members.filter((m) => m !== auth.uid);
+  let group = auth.group;
+  let named = null;
+
+  if (isAdmin(group, auth.uid) && others.length > 0) {
+    const otherAdmins = (group.admins || []).filter((a) => a !== auth.uid && others.includes(a));
+    if (otherAdmins.length === 0) {
+      if (!others.includes(newAdmin)) {
+        return NextResponse.json({ error: "Antes de salir, elige quién será el nuevo admin", code: "need-admin" }, { status: 400 });
+      }
+      group = { ...group, admins: [...(group.admins || []), newAdmin] };
+      await saveGroup(group);
+      named = await getUser(newAdmin);
+    }
+  }
+
+  const remaining = await removeMember(group, auth.uid);
   await saveUser({
     ...user,
     pinned: (user.pinned || []).filter((g) => g !== id),
     ...(user.lastGroup === id ? { lastGroup: null } : {}),
   });
   if (remaining) {
-    await notifyGroup(remaining, auth.members, auth.uid, { title: "👋 Alguien salió", body: `${user.name} salió de la sala` });
+    const others2 = auth.members.filter((m) => m !== named?.id);
+    await notifyGroup(remaining, others2, auth.uid, {
+      title: "👋 Alguien salió",
+      body: named ? `${user.name} salió de la sala y nombró admin a ${named.name}` : `${user.name} salió de la sala`,
+    });
+    if (named) {
+      await sendPushToUser(named.id, { title: `⭐ Ahora eres admin · ${remaining.name}`, body: `${user.name} salió de la sala y te dejó como admin`, url: `/?g=${remaining.id}` });
+    }
   }
   return NextResponse.json({ ok: true, deleted: !remaining });
 }

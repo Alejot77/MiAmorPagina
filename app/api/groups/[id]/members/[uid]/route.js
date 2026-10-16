@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { groupMembers, isMember, removeMember, saveGroup } from "@/lib/groups";
 import { getUser, saveUser } from "@/lib/users";
+import { sendPushToUser } from "@/lib/push";
 import { isAdmin, requireMemberOf } from "@/lib/session";
 import { readJson } from "@/lib/validate";
 
@@ -45,5 +46,9 @@ export async function PATCH(request, { params }) {
   if (admins.size === 0) return NextResponse.json({ error: "La sala necesita al menos un admin" }, { status: 400 });
   const group = { ...auth.group, admins: [...admins] };
   await saveGroup(group);
+  if (admin && !(auth.group.admins || []).includes(auth.target)) {
+    const by = (await getUser(auth.uid))?.name || "Alguien";
+    await sendPushToUser(auth.target, { title: `⭐ Ahora eres admin · ${group.name}`, body: `${by} te hizo admin de la sala`, url: `/?g=${group.id}` });
+  }
   return NextResponse.json({ members: await groupMembers(group) });
 }

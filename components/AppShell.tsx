@@ -64,7 +64,7 @@ type GroupAppProps = {
   onPin: (id: string, pinned: boolean) => void;
   onCreate: () => void;
   onJoin: () => void;
-  onLeave: () => Promise<void>;
+  onLeave: (newAdmin?: string) => Promise<void>;
   onGroupChanged: (g: GroupDetail) => void;
   onMeChanged: (me: Me) => void;
   onTheme: (id: string) => void;
@@ -635,8 +635,8 @@ export default function AppShell({ boot, onLogout }: { boot: Boot; onLogout: () 
     setGid(group.id);
   }
 
-  async function leave() {
-    await api(`/api/groups/${gid}`, "DELETE");
+  async function leave(newAdmin?: string) {
+    await api(`/api/groups/${gid}`, "DELETE", newAdmin ? { newAdmin } : undefined);
     const list = await refreshGroups();
     setGid(list[0]?.id || null);
   }

@@ -1019,3 +1019,14 @@ a.text-link { text-decoration: none; }
 .vote-avatars > span + span { margin-left: -6px; }
 .vote-avatars .waiting { opacity: .35; filter: grayscale(.6); }
 .close-vote { margin-top: 2px; gap: 6px; }
+
+/* Salir siendo el unico admin */
+.leave-note { color: var(--muted); font-size: 11px; line-height: 1.45; margin: 6px 4px 0; text-align: center; }
+.admin-pick { display: grid; gap: 8px; margin-bottom: 14px; }
+.admin-pick button { display: grid; grid-template-columns: 34px 1fr 24px; align-items: center; gap: 10px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); border-radius: 14px; padding: 10px 12px; text-align: left; cursor: pointer; }
+.admin-pick button.selected { border-color: var(--purple); background: var(--card-selected); }
+.admin-pick strong { font-size: 14px; }
+.admin-pick i { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--track); display: grid; place-items: center; color: #fff; }
+.admin-pick button.selected i { background: var(--purple); border-color: var(--purple); }
+.leave-confirm { width: 100%; margin-bottom: 8px; }
+.leave-confirm:disabled { opacity: .5; }
