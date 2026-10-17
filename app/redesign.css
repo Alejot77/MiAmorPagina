@@ -457,6 +457,9 @@ blockquote { margin: 13px 0; color: var(--muted); font: 600 italic 13px var(--fo
 .food-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .food-chip { min-height: 43px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); padding: 0 13px; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; }
 .food-chip.selected { color: white; border-color: var(--purple); background: var(--purple); box-shadow: 0 5px 14px var(--primary-shadow); }
+/* El check va como insignia en la esquina: el chip no cambia de ancho y los demas no se mueven */
+.food-chip { position: relative; }
+.food-chip > .icon { position: absolute; top: -6px; right: -4px; width: 18px; height: 18px; padding: 3px; border-radius: 50%; background: var(--card); color: var(--purple); border: 1.5px solid var(--purple); stroke-width: 3; }
 .custom-food-input { display: flex; flex-direction: column; gap: 5px; margin-top: 13px; }
 .custom-food-input > span { color: var(--muted); font-size: 9px; font-weight: 700; }
 .custom-food-input > div { display: grid; grid-template-columns: 1fr auto; gap: 7px; }
