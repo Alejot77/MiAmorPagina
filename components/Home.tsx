@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { Option, Place, Plan, PlanVotes, Step, StepVotes, VotesByPlan } from "./types";
 import { Avatar, AvatarStack, Button, Icon, Pill } from "./ui";
 import { memberName, namesList } from "./members";
 import {
-  categoryTitle, stepEmoji, dayMonthUpper, generatedStep, isPlanComplete, optionEmoji, rangeLabel,
+  categoryTitle, stepEmoji, dayMonthUpper, generatedStep, optionEmoji, rangeLabel,
   rootSteps, stepResult, terminalStep, todayStr, upcomingSaturday, weekdayUpper, addDays,
 } from "./planUtils";
 
@@ -193,11 +193,8 @@ function summaryText(plan: Plan, step: Step, votes: PlanVotes) {
 }
 
 function DayPlan({ plan, votes, person, places, actions }: { plan: Plan; votes: PlanVotes; person: string; places: Place[]; actions: HomeActions }) {
-  const complete = isPlanComplete(plan, votes);
-  const [collapsed, setCollapsed] = useState(complete);
-  useEffect(() => {
-    if (complete) setCollapsed(true);
-  }, [complete]);
+  // Siempre abierto al entrar; tocando el dia se puede cerrar.
+  const [collapsed, setCollapsed] = useState(false);
   const steps = rootSteps(plan);
 
   return (
