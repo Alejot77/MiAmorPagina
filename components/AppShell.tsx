@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { DEFAULT_THEME } from "@/config";
+import { DEFAULT_THEME, pendingUpdate } from "@/config";
 import { usePushNotifications } from "@/lib/usePushNotifications";
 import { applyTheme, rememberTheme } from "@/lib/useThemePerson";
 import type { GroupDetail, GroupSummary, HistoryEntry, Me, Place, Plan, PointsData, RecapList, VotesByPlan } from "./types";
@@ -13,6 +13,7 @@ import { setMembers } from "./members";
 import { AvatarStack, Button, ConfirmDialog, Icon, Modal, SheetHeader, type IconName } from "./ui";
 import { generatedStep, longDate, stepResult } from "./planUtils";
 import { CreateGroupSheet, GroupSwitcher, JoinGroupSheet, Onboarding } from "./Groups";
+import WhatsNew from "./WhatsNew";
 import { EmptyHome, Home, type HomeActions } from "./Home";
 import { FoodRestaurantSetup, ResultSheet, VoteSheet } from "./VoteSheets";
 import CreateFlow from "./CreateFlow";
@@ -69,10 +70,11 @@ type GroupAppProps = {
   onMeChanged: (me: Me) => void;
   onTheme: (id: string) => void;
   onLogout: () => void;
+  quiet: boolean; // hay otra ventana importante abierta (novedades)
 };
 
 // Todo lo de la sala abierta. Se vuelve a montar al cambiar de sala.
-function GroupApp({ me, group, groups, push, onOpenSwitcher, onSwitch, onPin, onCreate, onJoin, onLeave, onGroupChanged, onMeChanged, onTheme, onLogout }: GroupAppProps) {
+function GroupApp({ me, group, groups, push, onOpenSwitcher, onSwitch, onPin, onCreate, onJoin, onLeave, onGroupChanged, onMeChanged, onTheme, onLogout, quiet }: GroupAppProps) {
   const person = me.id;
   const [tab, setTab] = useState<Tab>("home");
   const [overlay, setOverlay] = useState<Overlay>({ type: "none" });
@@ -90,7 +92,7 @@ function GroupApp({ me, group, groups, push, onOpenSwitcher, onSwitch, onPin, on
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   // "¿Activar los avisos?" al entrar (nunca encima del modal de las flores).
-  const [pushPromptOpen, setPushPromptOpen] = useAutoPushPrompt(push, overlay.type !== "flower");
+  const [pushPromptOpen, setPushPromptOpen] = useAutoPushPrompt(push, overlay.type !== "flower" && !quiet);
 
   const close = () => setOverlay({ type: "none" });
   const fail = (err: any) => setError(err?.message || "Algo salió mal.");
@@ -572,6 +574,8 @@ export default function AppShell({ boot, onLogout }: { boot: Boot; onLogout: () 
   const [sheet, setSheet] = useState<"none" | "switch" | "create" | "join">("none");
   const [loadError, setLoadError] = useState("");
   const [reloadTick, setReloadTick] = useState(0);
+  // Novedades de la ultima actualizacion (una vez por cuenta).
+  const [update, setUpdate] = useState(() => pendingUpdate(boot.user));
   const push = usePushNotifications(me.id) as Push;
 
   // Tema de la cuenta (viene de la base, puede haberlo cambiado en otro celular).
@@ -654,6 +658,12 @@ export default function AppShell({ boot, onLogout }: { boot: Boot; onLogout: () 
     api("/api/me", "PATCH", { theme: id }).catch(() => {});
   }
 
+  function seenUpdate(next?: () => void) {
+    if (update) api("/api/me", "PATCH", { seenUpdate: update.id }).catch(() => {});
+    setUpdate(null);
+    next?.();
+  }
+
   if (groups.length === 0 || !gid) return <Onboarding me={me} onReady={ready} onLogout={onLogout} />;
 
   const sheets = (
@@ -671,6 +681,9 @@ export default function AppShell({ boot, onLogout }: { boot: Boot; onLogout: () 
       )}
       {sheet === "create" && <CreateGroupSheet close={() => setSheet("none")} onCreated={ready} />}
       {sheet === "join" && <JoinGroupSheet close={() => setSheet("none")} onJoined={ready} />}
+      {update && sheet === "none" && (
+        <WhatsNew update={update} name={me.name} close={() => seenUpdate()} onSeeGroups={() => seenUpdate(() => setSheet("switch"))} />
+      )}
     </>
   );
 
@@ -709,6 +722,7 @@ export default function AppShell({ boot, onLogout }: { boot: Boot; onLogout: () 
         onMeChanged={setMe}
         onTheme={chooseTheme}
         onLogout={onLogout}
+        quiet={Boolean(update)}
       />
       {sheets}
     </>

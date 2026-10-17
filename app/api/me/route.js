@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { THEMES } from "@/config";
+import { THEMES, UPDATES } from "@/config";
 import { isMember } from "@/lib/groups";
 import { NAME_MAX, getUser, saveUser, selfUser } from "@/lib/users";
 import { requireSession } from "@/lib/session";
@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 //   { theme }           tema de color
 //   { pin, pinned }     fijar / soltar una sala en el cambio rapido
 //   { lastGroup }       sala que se abre al entrar
+//   { seenUpdate }      ya vio el mensaje de novedades con ese id
 export async function PATCH(request) {
   const auth = await requireSession(request);
   if (auth.error) return auth.error;
@@ -35,6 +36,10 @@ export async function PATCH(request) {
     if (body.pinned) pinned.add(body.pin);
     else pinned.delete(body.pin);
     updated.pinned = [...pinned];
+  }
+  if ("seenUpdate" in body) {
+    if (!UPDATES.some((u) => u.id === body.seenUpdate)) return NextResponse.json({ error: "Novedad desconocida" }, { status: 400 });
+    updated.seenUpdate = body.seenUpdate;
   }
   if ("lastGroup" in body) {
     if (!(await isMember(body.lastGroup, user.id))) return NextResponse.json({ error: "No eres parte de esa sala" }, { status: 403 });

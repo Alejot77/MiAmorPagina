@@ -65,6 +65,8 @@ export type Me = Account & {
   theme: string | null;
   pinned: string[];
   flowers: boolean;
+  createdAt: string | null;
+  seenUpdate: string | null;
 };
 
 export type Member = { id: string; name: string; color: string; admin?: boolean };

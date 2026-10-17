@@ -94,3 +94,31 @@ export function defaultThemeFor() {
 // cambiar los dos desde Cuenta.
 export const DEFAULT_GROUP_NAME = "Plan de dos";
 export const GROUP_NAME_MAX = 40;
+
+// Novedades: al entrar despues de una actualizacion, cada cuenta ve una vez
+// la mas reciente (queda marcada como vista en su cuenta). Para anunciar
+// algo nuevo, agrega una entrada AL FINAL con un id distinto. "before": solo
+// la ven las cuentas creadas antes de esa fecha (a quien llega despues no le
+// es "nuevo").
+export const UPDATES = [
+  {
+    id: "2026-10-salas",
+    before: "2026-10-17T05:00:00.000Z",
+    title: "¡Plan de dos se agrandó!",
+    intro: "Ahora la app no es solo para ustedes dos: pueden armar salas con amigos o con la familia. Sus planes, fotos, sitios y puntos siguen intactos en su sala de siempre.",
+    items: [
+      { emoji: "🏠", title: "Salas", text: "Toca el nombre de la sala arriba para cambiar de sala o crear una nueva." },
+      { emoji: "💌", title: "Invita con un enlace", text: "En Cuenta → Invitar a la sala hay un código y un enlace para compartir." },
+      { emoji: "🔑", title: "Entras con tu correo", text: "Cuando la app te pida la clave, usa tu correo y la misma clave de siempre." },
+      { emoji: "🗳️", title: "Votaciones en grupo", text: "En salas grandes, quien crea el plan puede cerrar la votación si alguien no vota." },
+      { emoji: "🏆", title: "Puntos por sala", text: "Cada sala tiene su ranking y su propio premio." },
+    ],
+  },
+];
+
+export function pendingUpdate(user) {
+  const latest = UPDATES[UPDATES.length - 1];
+  if (!latest || !user || user.seenUpdate === latest.id) return null;
+  if (latest.before && user.createdAt && user.createdAt >= latest.before) return null;
+  return latest;
+}

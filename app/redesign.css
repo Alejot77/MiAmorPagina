@@ -1030,3 +1030,15 @@ a.text-link { text-decoration: none; }
 .admin-pick button.selected i { background: var(--purple); border-color: var(--purple); }
 .leave-confirm { width: 100%; margin-bottom: 8px; }
 .leave-confirm:disabled { opacity: .5; }
+
+/* Novedades despues de una actualizacion */
+.whats-new { text-align: center; padding-top: 4px; }
+.whats-new-badge { display: inline-block; font-size: 10px; letter-spacing: .14em; font-weight: 700; color: var(--purple); background: var(--card-selected); border-radius: 999px; padding: 6px 12px; }
+.whats-new h2 { font-size: 28px; margin: 12px 0 2px; }
+.whats-new-title { display: block; color: var(--purple); font-size: 15px; }
+.whats-new-intro { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 8px 0 16px; }
+.whats-new-list { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 8px; text-align: left; }
+.whats-new-list li { display: grid; grid-template-columns: 36px 1fr; gap: 10px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+.whats-new-list li > span { font-size: 22px; text-align: center; }
+.whats-new-list strong { display: block; font-size: 13px; color: var(--ink); }
+.whats-new-list small { display: block; font-size: 12px; line-height: 1.4; color: var(--muted); margin-top: 2px; }
