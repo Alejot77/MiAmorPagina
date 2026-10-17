@@ -283,7 +283,7 @@ const sinceLabel = (iso: string) => new Intl.DateTimeFormat("es-ES", { month: "l
 
 // Pestaña "Cuenta": la sala abierta (puntos, invitar, miembros, reglas),
 // tus salas, preferencias y tu cuenta, en desplegables.
-export function AccountPage({ me, group, groups, points, push, focus, onPointsChanged, onMeChanged, onGroupChanged, onLeave, onSwitch, onPin, onCreate, onJoin, onTheme, onLogout }: {
+export function AccountPage({ me, group, groups, points, push, focus, onPointsChanged, onMeChanged, onGroupChanged, onLeave, onSwitch, onPin, onCreate, onJoin, onTheme, onLogout, onStartTour }: {
   me: Me;
   group: GroupDetail;
   groups: GroupSummary[];
@@ -300,6 +300,7 @@ export function AccountPage({ me, group, groups, points, push, focus, onPointsCh
   onJoin: () => void;
   onTheme: (id: string) => void;
   onLogout: () => void;
+  onStartTour: () => void;
 }) {
   const [confirmReset, setConfirmReset] = useState<string | null>(null); // id o "all"
   const [confirmLeave, setConfirmLeave] = useState(false);
@@ -488,6 +489,11 @@ export function AccountPage({ me, group, groups, points, push, focus, onPointsCh
 
       <span className="settings-label">MÁS</span>
       <div className="menu-list account-links">
+        <button onClick={onStartTour}>
+          <span className="menu-icon purple"><Icon name="sparkles" /></span>
+          <span><strong>Ver la visita guiada</strong><small>Un repaso rápido de todo lo que puedes hacer</small></span>
+          <Icon name="chevron" />
+        </button>
         {me.flowers && (
           <Link href="/flores">
             <span className="menu-icon pink"><Icon name="flower" /></span>

@@ -103,7 +103,7 @@ export const GROUP_NAME_MAX = 40;
 export const UPDATES = [
   {
     id: "2026-10-salas",
-    before: "2026-10-17T05:00:00.000Z",
+    before: "2026-10-17T00:20:00.000Z", // 7:20 p. m. del 16 (Bogota): despues de la migracion, antes de abrir el registro
     title: "¡Plan de dos se agrandó!",
     intro: "Ahora la app no es solo para ustedes dos: pueden armar salas con amigos o con la familia. Sus planes, fotos, sitios y puntos siguen intactos en su sala de siempre.",
     items: [
@@ -112,6 +112,7 @@ export const UPDATES = [
       { emoji: "🔑", title: "Entras con tu correo", text: "Cuando la app te pida la clave, usa tu correo y la misma clave de siempre." },
       { emoji: "🗳️", title: "Votaciones en grupo", text: "En salas grandes, quien crea el plan puede cerrar la votación si alguien no vota." },
       { emoji: "🏆", title: "Puntos por sala", text: "Cada sala tiene su ranking y su propio premio." },
+      { emoji: "🧭", title: "Visita guiada", text: "Al crear una sala o entrar a una te mostramos todo. Puedes repetirla en Cuenta." },
     ],
   },
 ];

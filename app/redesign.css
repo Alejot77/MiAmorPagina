@@ -1042,3 +1042,22 @@ a.text-link { text-decoration: none; }
 .whats-new-list li > span { font-size: 22px; text-align: center; }
 .whats-new-list strong { display: block; font-size: 13px; color: var(--ink); }
 .whats-new-list small { display: block; font-size: 12px; line-height: 1.4; color: var(--muted); margin-top: 2px; }
+
+/* Visita guiada */
+.tour { position: fixed; inset: 0; z-index: 200; }
+.tour-dim { position: absolute; inset: 0; background: rgba(12, 8, 18, .72); }
+.tour-spot { position: fixed; border-radius: 18px; box-shadow: 0 0 0 9999px rgba(12, 8, 18, .72), 0 0 0 3px var(--purple), 0 0 24px var(--primary-shadow); transition: top .3s ease, left .3s ease, width .3s ease, height .3s ease; pointer-events: none; }
+.tour-card { position: fixed; left: 50%; transform: translateX(-50%); width: min(340px, calc(100% - 32px)); background: var(--card); color: var(--ink); border-radius: 22px; padding: 16px 18px 14px; box-shadow: 0 20px 50px rgba(0, 0, 0, .35); animation: tour-in .3s ease both; }
+.tour-card.centered { top: 50%; transform: translate(-50%, -50%); }
+@keyframes tour-in { from { opacity: 0; } }
+.tour-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.tour-count { font-size: 10px; font-weight: 700; letter-spacing: .12em; color: var(--muted); }
+.tour-skip { border: 0; background: none; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; padding: 4px 0; text-decoration: underline; }
+.tour-emoji { display: block; font-size: 30px; margin: 2px 0 4px; }
+.tour-card strong { display: block; font: 700 20px/1.2 var(--font-heading); }
+.tour-card p { margin: 6px 0 12px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.tour-dots { display: flex; gap: 5px; justify-content: center; margin-bottom: 12px; }
+.tour-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--track); transition: width .2s ease; }
+.tour-dots i.on { width: 18px; border-radius: 6px; background: var(--purple); }
+.tour-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tour-actions.final { grid-template-columns: 1fr; }

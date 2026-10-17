@@ -38,7 +38,7 @@ export default function Unirme({ params }: { params: Promise<{ code: string }> }
     setError("");
     try {
       const res = await api<{ group: { id: string } }>("/api/groups/join", "POST", { code });
-      window.location.href = `/?g=${res.group.id}`;
+      window.location.href = `/?g=${res.group.id}&tour=1`;
     } catch (err: any) {
       setError(err.message);
       setBusy(false);

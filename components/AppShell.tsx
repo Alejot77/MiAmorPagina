@@ -14,6 +14,7 @@ import { AvatarStack, Button, ConfirmDialog, Icon, Modal, SheetHeader, type Icon
 import { generatedStep, longDate, stepResult } from "./planUtils";
 import { CreateGroupSheet, GroupSwitcher, JoinGroupSheet, Onboarding } from "./Groups";
 import WhatsNew from "./WhatsNew";
+import Tour from "./Tour";
 import { EmptyHome, Home, type HomeActions } from "./Home";
 import { FoodRestaurantSetup, ResultSheet, VoteSheet } from "./VoteSheets";
 import CreateFlow from "./CreateFlow";
@@ -70,11 +71,14 @@ type GroupAppProps = {
   onMeChanged: (me: Me) => void;
   onTheme: (id: string) => void;
   onLogout: () => void;
-  quiet: boolean; // hay otra ventana importante abierta (novedades)
+  quiet: boolean; // hay otra ventana importante abierta (novedades, visita)
+  tourActive: boolean;
+  onTourEnd: () => void;
+  onStartTour: () => void;
 };
 
 // Todo lo de la sala abierta. Se vuelve a montar al cambiar de sala.
-function GroupApp({ me, group, groups, push, onOpenSwitcher, onSwitch, onPin, onCreate, onJoin, onLeave, onGroupChanged, onMeChanged, onTheme, onLogout, quiet }: GroupAppProps) {
+function GroupApp({ me, group, groups, push, onOpenSwitcher, onSwitch, onPin, onCreate, onJoin, onLeave, onGroupChanged, onMeChanged, onTheme, onLogout, quiet, tourActive, onTourEnd, onStartTour }: GroupAppProps) {
   const person = me.id;
   const [tab, setTab] = useState<Tab>("home");
   const [overlay, setOverlay] = useState<Overlay>({ type: "none" });
@@ -148,6 +152,14 @@ function GroupApp({ me, group, groups, push, onOpenSwitcher, onSwitch, onPin, on
   useEffect(() => {
     document.title = group.name;
   }, [group.name]);
+
+  useEffect(() => {
+    if (!tourActive) return;
+    setTab("home");
+    setOverlay({ type: "none" });
+    setFlow(null);
+    window.scrollTo({ top: 0 });
+  }, [tourActive]);
 
   useEffect(() => {
     if (!toast) return;
@@ -471,6 +483,7 @@ function GroupApp({ me, group, groups, push, onOpenSwitcher, onSwitch, onPin, on
             onJoin={onJoin}
             onTheme={onTheme}
             onLogout={onLogout}
+            onStartTour={onStartTour}
           />
         )}
         {tab === "history" && (
@@ -545,6 +558,16 @@ function GroupApp({ me, group, groups, push, onOpenSwitcher, onSwitch, onPin, on
 
         <PushPrompt push={push} open={pushPromptOpen} onClose={() => setPushPromptOpen(false)} />
 
+        {tourActive && (
+          <Tour
+            groupName={group.name}
+            onSkip={onTourEnd}
+            onDone={onTourEnd}
+            onInvite={() => { onTourEnd(); changeTab("account"); setAccountFocus({ group: "invitar", at: Date.now() }); }}
+            onCreate={() => { onTourEnd(); setFlow({ mode: "create" }); }}
+          />
+        )}
+
         {toast && (
           <div className="points-toast">
             <button onClick={() => setToast(null)} aria-label="Cerrar"><Icon name="close" size={16} /></button>
@@ -576,6 +599,8 @@ export default function AppShell({ boot, onLogout }: { boot: Boot; onLogout: () 
   const [reloadTick, setReloadTick] = useState(0);
   // Novedades de la ultima actualizacion (una vez por cuenta).
   const [update, setUpdate] = useState(() => pendingUpdate(boot.user));
+  // Visita guiada: al crear o entrar a una sala (si no la ha hecho) o al pedirla.
+  const [tour, setTour] = useState(() => !boot.user.tourDone && new URLSearchParams(window.location.search).get("tour") === "1");
   const push = usePushNotifications(me.id) as Push;
 
   // Tema de la cuenta (viene de la base, puede haberlo cambiado en otro celular).
@@ -637,6 +662,7 @@ export default function AppShell({ boot, onLogout }: { boot: Boot; onLogout: () 
 
   async function ready(group: GroupSummary) {
     setSheet("none");
+    if (!me.tourDone) setTour(true);
     await refreshGroups().catch(() => setGroups((list) => [...list, group]));
     setGid(group.id);
   }
@@ -656,6 +682,14 @@ export default function AppShell({ boot, onLogout }: { boot: Boot; onLogout: () 
   function chooseTheme(id: string) {
     setMe((m) => ({ ...m, theme: id }));
     api("/api/me", "PATCH", { theme: id }).catch(() => {});
+  }
+
+  function endTour() {
+    setTour(false);
+    if (!me.tourDone) {
+      setMe((m) => ({ ...m, tourDone: true }));
+      api("/api/me", "PATCH", { tourDone: true }).catch(() => {});
+    }
   }
 
   function seenUpdate(next?: () => void) {
@@ -722,7 +756,10 @@ export default function AppShell({ boot, onLogout }: { boot: Boot; onLogout: () 
         onMeChanged={setMe}
         onTheme={chooseTheme}
         onLogout={onLogout}
-        quiet={Boolean(update)}
+        quiet={Boolean(update) || tour}
+        tourActive={tour && !update && sheet === "none"}
+        onTourEnd={endTour}
+        onStartTour={() => setTour(true)}
       />
       {sheets}
     </>

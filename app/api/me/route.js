@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 //   { pin, pinned }     fijar / soltar una sala en el cambio rapido
 //   { lastGroup }       sala que se abre al entrar
 //   { seenUpdate }      ya vio el mensaje de novedades con ese id
+//   { tourDone }        termino (o salto) la visita guiada
 export async function PATCH(request) {
   const auth = await requireSession(request);
   if (auth.error) return auth.error;
@@ -37,6 +38,7 @@ export async function PATCH(request) {
     else pinned.delete(body.pin);
     updated.pinned = [...pinned];
   }
+  if ("tourDone" in body) updated.tourDone = Boolean(body.tourDone);
   if ("seenUpdate" in body) {
     if (!UPDATES.some((u) => u.id === body.seenUpdate)) return NextResponse.json({ error: "Novedad desconocida" }, { status: 400 });
     updated.seenUpdate = body.seenUpdate;

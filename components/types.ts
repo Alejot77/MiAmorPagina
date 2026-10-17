@@ -67,6 +67,7 @@ export type Me = Account & {
   flowers: boolean;
   createdAt: string | null;
   seenUpdate: string | null;
+  tourDone: boolean;
 };
 
 export type Member = { id: string; name: string; color: string; admin?: boolean };
