@@ -46,7 +46,7 @@ export function GroupSwitcher({ groups, currentId, close, onSwitch, onPin, onCre
       <div className="group-list">{pinned.map(row)}</div>
       {others.length > 0 && pinned.length > 0 && <span className="settings-label">OTRAS</span>}
       <div className="group-list">{others.map(row)}</div>
-      <p className="photos-hint" style={{ marginTop: 10 }}>Toca 📌 para fijar una sala arriba y cambiar más rápido.</p>
+      <p className="photos-hint" style={{ marginTop: 10 }}>Toca 📌 para fijar una sala: las fijadas salen primero en esta lista.</p>
       <div className="group-actions">
         <Button variant="secondary" onClick={onCreate}><Icon name="plus" size={17} /> Crear sala</Button>
         <Button variant="ghost" onClick={onJoin}>Unirme con código</Button>

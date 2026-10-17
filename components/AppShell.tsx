@@ -383,7 +383,7 @@ function GroupApp({ me, group, groups, push, onOpenSwitcher, onSwitch, onPin, on
   })();
 
   const flowPlan = flow?.planId ? findPlan(flow.planId) : undefined;
-  const pinned = groups.filter((g) => g.pinned);
+  // const pinned = groups.filter((g) => g.pinned); // para la fila de salas fijadas
   const reward = points?.reward || group.settings.reward;
   const others = group.members.filter((m) => m.id !== person);
 
@@ -397,6 +397,8 @@ function GroupApp({ me, group, groups, push, onOpenSwitcher, onSwitch, onPin, on
             <span className="switch-chevron"><Icon name="chevron" size={16} /></span>
           </button>
         </header>
+        {/* Fila de salas fijadas debajo del encabezado: apagada por ahora, se
+            cambia de sala con el menu desplegable (el pin ordena ese menu).
         {pinned.length >= 2 && (
           <nav className="pinned-groups" aria-label="Salas fijadas">
             {pinned.map((g) => (
@@ -405,7 +407,7 @@ function GroupApp({ me, group, groups, push, onOpenSwitcher, onSwitch, onPin, on
               </button>
             ))}
           </nav>
-        )}
+        )} */}
 
         {tab === "home" && newRecap && (
           <div style={{ padding: "14px 20px 0" }}>
