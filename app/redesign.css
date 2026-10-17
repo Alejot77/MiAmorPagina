@@ -606,7 +606,9 @@ blockquote { margin: 13px 0; color: var(--muted); font: 600 italic 13px var(--fo
 .wheel-pointer { position: absolute; z-index: 2; top: -5px; left: calc(50% - 13px); color: var(--purple-dark); font-size: 26px; }
 .wheel { width: 250px; height: 250px; border-radius: 50%; position: absolute; left: 10px; top: 14px; background: conic-gradient(var(--wheel-1) 0 25%, var(--wheel-2) 25% 50%, var(--wheel-3) 50% 75%, var(--wheel-4) 75%); border: 9px solid var(--card); box-shadow: 0 18px 38px rgba(81, 50, 116, .22); }
 .wheel > i { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 54px; height: 54px; border-radius: 50%; background: var(--card); display: grid; place-items: center; color: var(--purple); font-style: normal; font-size: 21px; }
-.slice-label { position: absolute; color: white; font-size: 10px; font-weight: 700; }.slice-label.one { top: 48px; right: 42px; transform: rotate(45deg); }.slice-label.two { bottom: 51px; right: 34px; transform: rotate(135deg); }.slice-label.three { bottom: 47px; left: 29px; transform: rotate(225deg); }.slice-label.four { top: 45px; left: 20px; transform: rotate(-45deg); }
+/* Cada nombre sale del centro hacia el borde de su porcion */
+.slice-label { position: absolute; left: 50%; top: 50%; width: 50%; height: 0; transform-origin: 0 0; pointer-events: none; }
+.slice-label > span { position: absolute; left: 32px; right: 8px; top: 0; transform: translateY(-50%); color: white; font-size: 10px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
 .roulette-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 6px 0 22px; }.roulette-tags span { background: var(--glass-soft); padding: 7px 9px; border-radius: 9px; font-size: 10px; }
 .roulette-screen > .btn, .winner .btn { width: 100%; margin-bottom: 5px; }
 .winner { min-height: 80vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -1046,8 +1048,9 @@ a.text-link { text-decoration: none; }
 /* Visita guiada */
 .tour { position: fixed; inset: 0; z-index: 200; }
 .tour-dim { position: absolute; inset: 0; background: rgba(12, 8, 18, .72); }
-.tour-spot { position: fixed; border-radius: 18px; box-shadow: 0 0 0 9999px rgba(12, 8, 18, .72), 0 0 0 3px var(--purple), 0 0 24px var(--primary-shadow); transition: top .3s ease, left .3s ease, width .3s ease, height .3s ease; pointer-events: none; }
-.tour-card { position: fixed; left: 50%; transform: translateX(-50%); width: min(340px, calc(100% - 32px)); background: var(--card); color: var(--ink); border-radius: 22px; padding: 16px 18px 14px; box-shadow: 0 20px 50px rgba(0, 0, 0, .35); animation: tour-in .3s ease both; }
+.tour-spot { position: fixed; border-radius: 18px; box-shadow: 0 0 0 3px var(--purple), 0 0 24px var(--primary-shadow), 0 0 0 9999px rgba(12, 8, 18, .72); transition: top .3s ease, left .3s ease, width .3s ease, height .3s ease; pointer-events: none; }
+.tour-safe { position: fixed; left: 0; width: 0; top: env(safe-area-inset-top, 0px); bottom: env(safe-area-inset-bottom, 0px); visibility: hidden; pointer-events: none; }
+.tour-card { position: fixed; left: 50%; transform: translateX(-50%); width: min(340px, calc(100% - 32px)); max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto; transition: top .3s ease; background: var(--card); color: var(--ink); border-radius: 22px; padding: 16px 18px 14px; box-shadow: 0 20px 50px rgba(0, 0, 0, .35); animation: tour-in .3s ease both; }
 .tour-card.centered { top: 50%; transform: translate(-50%, -50%); }
 @keyframes tour-in { from { opacity: 0; } }
 .tour-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }

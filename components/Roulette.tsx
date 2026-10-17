@@ -8,6 +8,14 @@ import { placeEmoji } from "./planUtils";
 
 type Mode = "food" | "places" | "custom";
 const FOOD_CHOICES = FOOD_TYPES.filter((f) => f.key !== "otro");
+const WHEEL_COLORS = ["var(--wheel-1)", "var(--wheel-2)", "var(--wheel-3)", "var(--wheel-4)"];
+
+// Color de cada porcion: se repiten los 4 del tema sin que queden dos
+// iguales juntas (tampoco la ultima con la primera).
+function sliceColor(i: number, total: number) {
+  if (i === total - 1 && total % 4 === 1 && total > 1) return WHEEL_COLORS[1];
+  return WHEEL_COLORS[i % 4];
+}
 
 export default function Roulette({ places, initialOptions, close }: { places: Place[]; initialOptions?: string[]; close: () => void }) {
   const [stage, setStage] = useState<"choose" | "options" | "wheel" | "result">(initialOptions ? "wheel" : "choose");
@@ -39,10 +47,17 @@ export default function Roulette({ places, initialOptions, close }: { places: Pl
     else setStage(initialOptions ? "options" : "options");
   };
 
+  // Se elige el ganador y la rueda gira hasta dejar SU porcion bajo la flecha
+  // (arriba). La porcion i va de i*slice a (i+1)*slice grados, en el sentido
+  // del reloj desde arriba.
   function spin() {
-    const picked = modeOptions[Math.floor(Math.random() * modeOptions.length)];
+    const index = Math.floor(Math.random() * modeOptions.length);
+    const picked = modeOptions[index];
+    const slice = 360 / modeOptions.length;
+    const jitter = (Math.random() - 0.5) * slice * 0.6;
+    const stop = (((360 - (index + 0.5) * slice + jitter) % 360) + 360) % 360;
     setSpinning(true);
-    setRotation((r) => r + 1440 + Math.floor(Math.random() * 360));
+    setRotation((r) => r - (((r % 360) + 360) % 360) + 4 * 360 + stop);
     window.setTimeout(() => {
       setWinner(picked);
       setSpinning(false);
@@ -174,8 +189,19 @@ export default function Roulette({ places, initialOptions, close }: { places: Pl
             </div>
             <div className="wheel-wrap">
               <div className="wheel-pointer">▼</div>
-              <div className="wheel" style={{ transform: `rotate(${rotation}deg)`, transition: "transform 1.35s cubic-bezier(.2,.8,.2,1)" }}>
-                {modeOptions.slice(0, 4).map((o, i) => <span key={o} className={`slice-label ${["one", "two", "three", "four"][i]}`}>{o}</span>)}
+              <div
+                className="wheel"
+                style={{
+                  transform: `rotate(${rotation}deg)`,
+                  transition: "transform 1.35s cubic-bezier(.2,.8,.2,1)",
+                  background: `conic-gradient(${modeOptions.map((_, i) => `${sliceColor(i, modeOptions.length)} ${(i * 100) / modeOptions.length}% ${((i + 1) * 100) / modeOptions.length}%`).join(", ")})`,
+                }}
+              >
+                {modeOptions.map((o, i) => (
+                  <span key={i} className="slice-label" style={{ transform: `rotate(${(i + 0.5) * (360 / modeOptions.length) - 90}deg)` }}>
+                    <span>{o}</span>
+                  </span>
+                ))}
                 <i>♥</i>
               </div>
             </div>
