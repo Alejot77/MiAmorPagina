@@ -7,3 +7,6 @@ next-env.d.ts
 
 *.tsbuildinfo
 next-env.d.ts
+
+# version del despliegue (la escribe scripts/write-version.mjs al compilar)
+lib/version.json

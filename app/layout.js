@@ -1,5 +1,6 @@
 import "./globals.css";
 import { DM_Sans, Fraunces } from "next/font/google";
+import UpdatePrompt from "@/components/UpdatePrompt";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -42,7 +43,10 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="es" className={`${fraunces.variable} ${dmSans.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <UpdatePrompt />
+      </body>
     </html>
   );
 }
